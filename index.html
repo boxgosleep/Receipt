@@ -9,47 +9,20 @@
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
-        /* === 您的箱庭風格樣式保持不變 === */
-        body {
-            font-family: 'Noto Serif TC', serif;
-            background-color: #f0f2f5;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 30px;
-            color: #555;
-            margin: 0;
-        }
-        .controls {
-            background: white;
-            padding: 25px;
-            border-radius: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
-            margin-bottom: 30px;
-            text-align: center;
-            width: 100%;
-            max-width: 400px;
-            border: 1px solid #eef;
-        }
+        /* === 箱庭風格 CSS === */
+        body { font-family: 'Noto Serif TC', serif; background-color: #f0f2f5; display: flex; flex-direction: column; align-items: center; padding: 30px; color: #555; margin: 0; }
+        .controls { background: white; padding: 25px; border-radius: 15px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); margin-bottom: 30px; text-align: center; width: 100%; max-width: 400px; border: 1px solid #eef; }
         .controls h3 { margin-top: 0; color: #8faecf; }
-        input { padding: 12px; border: 1px solid #ddd; border-radius: 8px; width: 70%; text-align: center; font-family: inherit; margin-bottom: 10px; }
+        
+        /* 下拉選單樣式優化 */
+        select { padding: 12px; border: 1px solid #a1c4fd; border-radius: 8px; width: 80%; text-align: center; font-family: inherit; margin-bottom: 15px; font-size: 16px; color: #555; background-color: #f9fbff; cursor: pointer; }
+        select:focus { outline: none; box-shadow: 0 0 0 3px rgba(161, 196, 253, 0.3); }
+
         button { padding: 10px 25px; border: none; border-radius: 30px; cursor: pointer; font-family: inherit; transition: 0.3s; font-weight: bold; letter-spacing: 1px; }
-        .btn-gen { background: #a1c4fd; color: white; }
-        .btn-dl { background: #fad0c4; color: white; margin-left: 10px; }
+        .btn-dl { background: #fad0c4; color: white; margin-top: 10px; width: 80%; }
         button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
         
-        #receipt-canvas {
-            width: 500px; 
-            min-height: 700px;
-            background: #fff;
-            position: relative;
-            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
-            overflow: hidden;
-            display: flex;
-            background-image: repeating-linear-gradient(45deg, #fffcfc 25%, transparent 25%, transparent 75%, #fffcfc 75%, #fffcfc), repeating-linear-gradient(45deg, #fffcfc 25%, #fff 25%, #fff 75%, #fffcfc 75%, #fffcfc);
-            background-position: 0 0, 10px 10px;
-            background-size: 20px 20px;
-        }
+        #receipt-canvas { width: 500px; min-height: 700px; background: #fff; position: relative; box-shadow: 0 15px 40px rgba(0,0,0,0.1); overflow: hidden; display: flex; background-image: repeating-linear-gradient(45deg, #fffcfc 25%, transparent 25%, transparent 75%, #fffcfc 75%, #fffcfc), repeating-linear-gradient(45deg, #fffcfc 25%, #fff 25%, #fff 75%, #fffcfc 75%, #fffcfc); background-position: 0 0, 10px 10px; background-size: 20px 20px; }
         .gradient-orb { position: absolute; border-radius: 50%; filter: blur(60px); z-index: 0; }
         .orb-1 { top: -50px; right: -50px; width: 300px; height: 300px; background: rgba(161, 196, 253, 0.4); }
         .orb-2 { bottom: -50px; left: -50px; width: 350px; height: 350px; background: rgba(250, 208, 196, 0.4); }
@@ -77,13 +50,15 @@
 
     <div class="controls">
         <h3>☁️ 箱庭入夢・集點櫃台</h3>
-        <input type="text" id="csvUrlInput" placeholder="https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv" style="width:90%; font-size:11px;">
-        <br><br>
-        <input type="text" id="userIdInput" placeholder="請輸入噗浪 ID (例如: namida127_draw)">
+        <p style="font-size:12px; color:#aaa; margin-bottom:10px;">請選擇客人 ID (資料已自動同步)</p>
+        
+        <select id="userSelect" onchange="generateReceipt()">
+            <option value="">正在讀取資料...</option>
+        </select>
+        
         <br>
-        <button class="btn-gen" onclick="fetchAndGenerate()">生成手帳</button>
-        <button class="btn-dl" onclick="downloadImage()">下載圖片</button>
-        <p id="statusMsg" style="font-size:12px; color:#aaa; margin-top:10px;">請先貼上 CSV 連結</p>
+        <button class="btn-dl" onclick="downloadImage()">⬇️ 下載圖片</button>
+        <p id="statusMsg" style="font-size:12px; color:#aaa; margin-top:10px;">資料載入中...</p>
     </div>
 
     <div id="receipt-canvas">
@@ -107,7 +82,7 @@
                 </div>
 
                 <ul class="record-list" id="recordList">
-                    <li style="text-align:center; color:#ddd; margin-top:50px;">等待查詢中...</li>
+                    <li style="text-align:center; color:#ddd; margin-top:50px;">請選擇一位客人</li>
                 </ul>
 
                 <div class="footer-summary">
@@ -122,108 +97,123 @@
     </div>
 
     <script>
-        // 全域變數儲存資料
+        // ==========================================
+        // 【重要】請把你的「集點卡」工作表 CSV 連結貼在下面引號內！
+        //  (連結結尾應該是 output=csv)
+        // ==========================================
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv'; 
+        // ==========================================
+
         let globalData = [];
 
-        async function fetchAndGenerate() {
-            const csvUrl = document.getElementById('csvUrlInput').value.trim();
-            const userId = document.getElementById('userIdInput').value.trim();
+        // 頁面載入時自動執行
+        window.onload = function() {
+            if(CSV_URL.includes('請在這裡貼上')) {
+                alert("請記得編輯 HTML 檔案，把 CSV 連結貼上去喔！");
+                updateStatus("尚未設定 CSV 連結");
+                return;
+            }
+            fetchAndInit();
+        };
 
-            if (!csvUrl) { alert("請先貼上 CSV 連結！"); return; }
-            if (!userId) { alert("請輸入 ID！"); return; }
-
-            updateStatus("正在讀取箱庭紀錄...");
-
-            // 使用 PapaParse 讀取 CSV
-            Papa.parse(csvUrl, {
+        function fetchAndInit() {
+            updateStatus("正在從雲端讀取名單...");
+            Papa.parse(CSV_URL, {
                 download: true,
-                header: true, // 自動識別標題列 (ID, 總消費金額, 目前點數...)
+                header: true,
                 complete: function(results) {
                     globalData = results.data;
                     console.log("資料載入成功", globalData);
-                    updateStatus("資料讀取成功！正在生成...");
-                    generateReceipt(userId);
+                    initDropdown();
+                    updateStatus("準備就緒！請選擇客人");
                 },
                 error: function(err) {
                     console.error(err);
-                    updateStatus("讀取失敗，請檢查連結權限 (是否已發布為 CSV)");
-                    alert("讀取失敗！請確認：\n1. 連結是否為「發布到網路」的 CSV 連結\n2. 連結是否有權限問題");
+                    updateStatus("讀取失敗，請檢查連結");
+                    alert("讀取 CSV 失敗，請確認連結權限！");
                 }
             });
         }
 
-        function generateReceipt(userId) {
+        // 初始化下拉選單 (這就是不用 B2 也能做到的魔法)
+        function initDropdown() {
+            const select = document.getElementById('userSelect');
+            select.innerHTML = '<option value="">-- 請選擇 ID --</option>';
+
+            // 從資料中抓出所有 ID，並建立選項
+            globalData.forEach(row => {
+                // 假設欄位名稱是 'ID' (根據你的 Sheet)
+                // 如果 ID 不是空的，就加進選單
+                if (row['ID'] && row['ID'].trim() !== '') {
+                    let option = document.createElement('option');
+                    option.value = row['ID']; // 真正的值
+                    option.text = row['ID'];  // 顯示的文字
+                    select.appendChild(option);
+                }
+            });
+        }
+
+        // 當選單改變時，自動生成收據
+        function generateReceipt() {
+            const userId = document.getElementById('userSelect').value;
             const listContainer = document.getElementById('recordList');
-            listContainer.innerHTML = ''; // 清空列表
-            document.getElementById('displayUser').innerText = userId;
-
-            // 1. 在資料中尋找該 ID
-            // 欄位名稱對應您的工作表：'ID', '目前點數', '消費歷史'
-            const userRow = globalData.find(row => 
-                row['ID'] && row['ID'].trim().toLowerCase() === userId.toLowerCase()
-            );
-
-            if (!userRow) {
-                listContainer.innerHTML = '<li style="text-align:center; color:#ddd; margin-top:50px;">查無此 ID 的紀錄</li>';
+            
+            if (!userId) {
+                document.getElementById('displayUser').innerText = "---";
                 document.getElementById('totalPoints').innerText = "0";
+                listContainer.innerHTML = '<li style="text-align:center; color:#ddd; margin-top:50px;">請選擇一位客人</li>';
                 return;
             }
 
-            // 2. 顯示點數
-            // 您的表格欄位是 "目前點數"
-            document.getElementById('totalPoints').innerText = userRow['目前點數'] || "0";
+            document.getElementById('displayUser').innerText = userId;
+            listContainer.innerHTML = ''; // 清空列表
 
-            // 3. 解析並顯示歷史紀錄
-            // 您的歷史紀錄格式範例："2025-11-27 - 1700 2026-01-08 - 2800"
-            // 我們需要把這個長字串切開來
-            const historyString = userRow['消費歷史'] || "";
-            
-            // 簡單的解析邏輯：用空白分割，因為您的格式看起來是 "日期 - 金額 日期 - 金額"
-            // 但如果中間有換行符號，我們要先處理
-            // 這裡嘗試用正規表達式抓出 "YYYY-MM-DD - 數字" 的模式
-            // Regex: (\d{4}-\d{2}-\d{2})\s*-\s*(\d+)
-            const regex = /(\d{4}-\d{2}-\d{2})\s*-\s*(\d+)/g;
-            let match;
-            let records = [];
+            // 尋找該 ID 的資料
+            const userRow = globalData.find(row => row['ID'] == userId);
 
-            while ((match = regex.exec(historyString)) !== null) {
-                records.push({
-                    date: match[1],
-                    amount: match[2]
-                });
+            if (userRow) {
+                // 1. 顯示點數
+                document.getElementById('totalPoints').innerText = userRow['目前點數'] || "0";
+
+                // 2. 解析歷史紀錄
+                const historyString = userRow['消費歷史'] || "";
+                // Regex 抓取 "YYYY-MM-DD - 數字"
+                const regex = /(\d{4}-\d{2}-\d{2})\s*-\s*(\d+)/g;
+                let match;
+                let records = [];
+
+                while ((match = regex.exec(historyString)) !== null) {
+                    records.push({ date: match[1], amount: match[2] });
+                }
+
+                records.sort((a, b) => b.date.localeCompare(a.date));
+
+                if (records.length === 0) {
+                     // 如果沒有正規格式，顯示原始文字
+                     if(historyString.length > 0) {
+                         listContainer.innerHTML = `<li class="record-item"><span class="item-desc">${historyString}</span></li>`;
+                     } else {
+                         listContainer.innerHTML = '<li style="text-align:center; color:#ddd; margin-top:50px;">尚無詳細消費紀錄</li>';
+                     }
+                } else {
+                    records.forEach(rec => {
+                        let dateObj = new Date(rec.date);
+                        let yy = dateObj.getFullYear().toString().substr(-2);
+                        let mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+                        let dd = dateObj.getDate().toString().padStart(2, '0');
+                        let dateStr = `${yy}.${mm}.${dd}`;
+
+                        let li = document.createElement('li');
+                        li.className = 'record-item';
+                        li.innerHTML = `
+                            <span class="item-date">${dateStr}</span>
+                            <span class="item-desc">消費累積</span>
+                            <span class="item-points">+${rec.amount}元</span>
+                        `;
+                        listContainer.appendChild(li);
+                    });
+                }
             }
-
-            // 排序：新的日期在上面
-            records.sort((a, b) => b.date.localeCompare(a.date));
-
-            // 渲染到畫面上
-            if (records.length === 0) {
-                 // 如果沒有正規格式的紀錄，試著直接顯示文字 ( fallback )
-                 if(historyString.length > 0) {
-                     listContainer.innerHTML = `<li class="record-item"><span class="item-desc">${historyString}</span></li>`;
-                 } else {
-                     listContainer.innerHTML = '<li style="text-align:center; color:#ddd; margin-top:50px;">尚無詳細消費紀錄</li>';
-                 }
-            } else {
-                records.forEach(rec => {
-                    // 格式化日期 2025-11-27 -> 25.11.27
-                    let dateObj = new Date(rec.date);
-                    let yy = dateObj.getFullYear().toString().substr(-2);
-                    let mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
-                    let dd = dateObj.getDate().toString().padStart(2, '0');
-                    let dateStr = `${yy}.${mm}.${dd}`;
-
-                    let li = document.createElement('li');
-                    li.className = 'record-item';
-                    li.innerHTML = `
-                        <span class="item-date">${dateStr}</span>
-                        <span class="item-desc">消費累積</span>
-                        <span class="item-points">+${rec.amount}元</span>
-                    `;
-                    listContainer.appendChild(li);
-                });
-            }
-            updateStatus("生成完成！");
         }
 
         function updateStatus(msg) {
@@ -232,6 +222,7 @@
 
         function downloadImage() {
             const node = document.getElementById('receipt-canvas');
+            // 先隱藏邊框陰影以免截圖有黑邊 (Optional)
             html2canvas(node, { scale: 2, backgroundColor: null }).then(canvas => {
                 let link = document.createElement('a');
                 link.download = `箱庭手帳_${document.getElementById('displayUser').innerText}.jpg`;
