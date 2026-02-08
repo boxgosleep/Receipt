@@ -34,21 +34,23 @@
             width: 90%;
             max-width: 400px;
         }
-        select { padding: 10px; border: 1px solid #a1c4fd; border-radius: 5px; width: 100%; font-family: inherit; margin-bottom: 10px; }
-        .btn-dl { background: #b4c6e7; color: white; border: none; padding: 10px 30px; border-radius: 20px; cursor: pointer; font-weight: bold; }
+        select { padding: 10px; border: 1px solid #a1c4fd; border-radius: 5px; width: 100%; font-family: inherit; margin-bottom: 10px; cursor: pointer; }
+        .btn-dl { background: #b4c6e7; color: white; border: none; padding: 10px 30px; border-radius: 20px; cursor: pointer; font-weight: bold; transition: 0.2s;}
+        .btn-dl:hover { background: #8faecf; transform: translateY(-2px); }
 
-        /* === 卡片本體 (固定尺寸，確保不跑版) === */
+        /* === 卡片本體 (改為 min-height，讓它能自動長高) === */
         #receipt-canvas {
             width: 500px;
-            height: 750px; /* 拉長一點以免內容太多 */
+            min-height: 750px; /* 最小高度 */
+            height: auto;      /* 自動長高 */
             background-color: #fff;
             position: relative;
-            overflow: hidden; /* 超出隱藏 */
+            overflow: visible; /* 允許內容撐開 */
             box-shadow: 0 10px 30px rgba(0,0,0,0.1);
             display: flex;
         }
 
-        /* === 背景漸層 (使用 html2canvas 支援的寫法) === */
+        /* === 背景漸層 === */
         .bg-gradient-pink {
             position: absolute;
             top: -150px; left: -150px;
@@ -64,10 +66,11 @@
             z-index: 0;
         }
 
-        /* === 左側標題 (使用 Flex + 旋轉代替 writing-mode，解決截圖位移問題) === */
+        /* === 左側標題 === */
         .sidebar {
             width: 90px;
-            height: 100%;
+            /* 讓邊欄跟著卡片一起長高 */
+            min-height: 100%; 
             border-right: 1px solid rgba(0,0,0,0.05);
             position: relative;
             z-index: 1;
@@ -77,12 +80,11 @@
             padding-top: 50px;
         }
 
-        /* 這裡用一個容器把字裝起來，每個字獨立一行，模擬直排 */
         .vertical-box {
             display: flex;
             flex-direction: column;
             align-items: center;
-            gap: 15px; /* 字距 */
+            gap: 15px;
         }
         .v-char {
             font-size: 36px;
@@ -90,7 +92,6 @@
             font-weight: 500;
         }
         
-        /* 英文直排 (旋轉90度) */
         .v-eng {
             transform: rotate(90deg);
             font-size: 11px;
@@ -98,13 +99,14 @@
             color: #aaa;
             text-transform: uppercase;
             white-space: nowrap;
-            margin-top: 60px; /* 與上方中文的距離 */
+            margin-top: 60px;
             margin-bottom: 60px;
         }
 
         .sidebar-footer {
-            margin-top: auto;
-            margin-bottom: 40px;
+            /* 固定在底部 */
+            margin-top: auto; 
+            padding-bottom: 40px; /* 留點空間 */
             display: flex;
             flex-direction: column;
             gap: 10px;
@@ -136,14 +138,14 @@
         /* 列表區 */
         .list-container {
             flex: 1;
-            overflow: hidden; /* 暫時隱藏捲軸 */
+            margin-bottom: 20px;
         }
         .record-row {
             display: flex;
             justify-content: space-between;
             align-items: center;
             font-size: 13px;
-            padding: 8px 0;
+            padding: 10px 0;
             border-bottom: 1px dashed #f5f5f5;
             color: #666;
             line-height: 1.5;
@@ -151,29 +153,31 @@
         .row-left {
             display: flex;
             align-items: center;
-            gap: 10px;
+            gap: 12px;
         }
         .date {
-            font-family: 'Courier New', monospace; /* 等寬字體讓日期對齊 */
+            font-family: 'Courier New', monospace;
             color: #ccc;
             font-weight: bold;
             font-size: 12px;
+            min-width: 60px; /* 確保日期對齊 */
         }
         .desc {
-            max-width: 200px;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
+            /* 防止文字過長破版，改為自動換行 */
+            max-width: 180px;
+            word-wrap: break-word; 
         }
         
         /* 點數顏色 */
-        .pts-plus { color: #8faecf; font-weight: bold; } /* 獲得點數 (藍) */
-        .pts-minus { color: #f8b3c6; font-weight: bold; } /* 扣除點數 (粉) */
+        .pts-plus { color: #8faecf; font-weight: bold; white-space: nowrap; }
+        .pts-minus { color: #f8b3c6; font-weight: bold; white-space: nowrap; }
 
         /* 底部總分 */
         .footer-area {
             text-align: right;
-            margin-top: 20px;
+            margin-top: auto;
+            border-top: 2px solid #f9f9f9; /* 加個分隔線 */
+            padding-top: 20px;
         }
         .lbl { font-size: 11px; color: #ccc; letter-spacing: 2px; }
         .big-num { font-size: 60px; color: #a1c4fd; font-weight: 300; line-height: 1; margin-top: 5px; }
@@ -185,11 +189,14 @@
 
     <div class="controls">
         <h3>☁️ 箱庭入夢・集點櫃台</h3>
+        <p id="statusMsg" style="font-size:12px; color:#aaa; margin-bottom:5px;">初始化中...</p>
+        
         <select id="userSelect" onchange="generateReceipt()">
-            <option value="">讀取中...</option>
+            <option value="">-- 請先載入資料 --</option>
         </select>
-        <button class="btn-dl" onclick="downloadImage()">下載圖片</button>
-        <div id="statusMsg" style="font-size:12px; color:#aaa; margin-top:5px;"></div>
+        
+        <br>
+        <button class="btn-dl" onclick="downloadImage()">⬇️ 下載圖片</button>
     </div>
 
     <div id="receipt-canvas">
@@ -220,7 +227,10 @@
             </div>
 
             <div class="list-container" id="recordList">
-                <div style="color:#ddd; text-align:center; margin-top:50px;">等待查詢...</div>
+                <div style="color:#ddd; text-align:center; margin-top:50px;">
+                    請選擇客人 ID<br>
+                    <span style="font-size:10px; color:#eee;">(若無選項請檢查 CSV 連結)</span>
+                </div>
             </div>
 
             <div class="footer-area">
@@ -233,37 +243,62 @@
 
     <script>
         // ==========================================
-        // 請貼上你的 CSV 連結
+        // 🔴 請在這裡貼上新的 CSV 連結 (要是 output=csv 結尾的喔！)
         // ==========================================
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pubhtml'; 
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv'; 
         // ==========================================
 
         let globalData = [];
 
         window.onload = function() {
-            if(CSV_URL.includes('請在這裡貼上')) {
-                document.getElementById('statusMsg').innerText = "請修改程式碼貼上 CSV 連結";
+            if(CSV_URL.includes('請在這裡貼上') || CSV_URL.includes('pubhtml')) {
+                document.getElementById('statusMsg').innerText = "❌ 連結錯誤：請使用 .csv 連結";
+                alert("連結格式不對喔！\n請去 Google Sheet -> 發布到網路 -> 選擇「集點卡」-> 選擇「CSV」格式。");
                 return;
             }
+            fetchAndInit();
+        };
+
+        function fetchAndInit() {
+            document.getElementById('statusMsg').innerText = "🔄 正在讀取資料...";
             Papa.parse(CSV_URL, {
                 download: true,
                 header: true,
+                skipEmptyLines: true,
                 complete: function(results) {
-                    globalData = results.data;
-                    initDropdown();
-                    document.getElementById('statusMsg').innerText = "✅ 資料已載入";
+                    if (results.data && results.data.length > 0) {
+                        globalData = results.data;
+                        initDropdown();
+                        document.getElementById('statusMsg').innerText = "✅ 資料載入成功！";
+                    } else {
+                        document.getElementById('statusMsg').innerText = "⚠️ 讀取到了空資料";
+                    }
+                },
+                error: function(err) {
+                    document.getElementById('statusMsg').innerText = "❌ 讀取失敗";
+                    console.error(err);
                 }
             });
-        };
+        }
 
         function initDropdown() {
             const select = document.getElementById('userSelect');
             select.innerHTML = '<option value="">-- 請選擇 ID --</option>';
+            
+            // 自動偵測 ID 欄位 (防止欄位名稱有空格)
+            let idKey = null;
+            if (globalData.length > 0) {
+                const keys = Object.keys(globalData[0]);
+                // 找一個最像 "ID" 的欄位
+                idKey = keys.find(k => k.toUpperCase().includes('ID')) || keys[0];
+            }
+
             globalData.forEach(row => {
-                if (row['ID'] && row['ID'].trim() !== '') {
+                let val = row[idKey]; // 使用偵測到的 ID 欄位名
+                if (val && val.trim() !== '') {
                     let option = document.createElement('option');
-                    option.value = row['ID'];
-                    option.text = row['ID'];
+                    option.value = val;
+                    option.text = val;
                     select.appendChild(option);
                 }
             });
@@ -283,82 +318,95 @@
             document.getElementById('displayUser').innerText = userId;
             listContainer.innerHTML = ''; 
 
-            const userRow = globalData.find(row => row['ID'] == userId);
+            // 尋找對應的 User
+            // 同樣使用自動偵測的 ID 欄位
+            let idKey = Object.keys(globalData[0]).find(k => k.toUpperCase().includes('ID')) || Object.keys(globalData[0])[0];
+            const userRow = globalData.find(row => row[idKey] == userId);
 
             if (userRow) {
-                // 1. 設定總分
-                document.getElementById('totalPoints').innerText = userRow['目前點數'] || "0";
+                // 1. 設定總分 (嘗試抓取 "點數" 相關欄位)
+                let pointKey = Object.keys(userRow).find(k => k.includes('點數')) || '目前點數';
+                document.getElementById('totalPoints').innerText = userRow[pointKey] || "0";
 
-                // 2. 解析那串長長的文字 (包含消費和兌換)
-                // 你的格式通常是："- 251127累積消費..."，所以我們用 "- " 來切割
-                const rawHistory = userRow['消費歷史'] || "";
-                
-                // 修正解析邏輯：把字串根據 "- " 或 換行符號 切開
+                // 2. 解析歷史紀錄
+                // 嘗試抓取 "歷史" 或 "紀錄" 相關欄位
+                let historyKey = Object.keys(userRow).find(k => k.includes('歷史') || k.includes('紀錄')) || '消費歷史';
+                const rawHistory = userRow[historyKey] || "";
+
+                // === 這裡是最強解析邏輯 ===
+                // 它可以處理換行符號，也可以處理 "- " 符號
                 const rawLines = rawHistory.split(/[\n\r]+/); 
-                
                 let records = [];
 
                 rawLines.forEach(line => {
-                    // 清理雜訊
                     let cleanLine = line.trim();
-                    if (cleanLine.startsWith("- ")) cleanLine = cleanLine.substring(2);
-                    if (cleanLine.length < 5) return; // 太短的跳過
+                    // 去掉開頭的 "- "
+                    cleanLine = cleanLine.replace(/^-\s*/, '');
+                    if (cleanLine.length < 5) return;
 
-                    // 嘗試抓取日期 (前6碼)
-                    // 格式: 251127...
-                    const dateMatch = cleanLine.match(/^(\d{6})/);
+                    // 支援兩種日期格式：
+                    // 1. YYMMDD (例如 251127) -> 你的 Excel 格式
+                    // 2. YYYY-MM-DD (例如 2025-11-27)
                     
-                    if (dateMatch) {
-                        let dateRaw = dateMatch[1]; // 251127
-                        let yy = dateRaw.substr(0, 2);
-                        let mm = dateRaw.substr(2, 2);
-                        let dd = dateRaw.substr(4, 2);
-                        let dateStr = `${yy}.${mm}.${dd}`; // 變成 25.11.27
+                    let dateStr = "??.??.??";
+                    let rawDateVal = "0";
+                    let desc = cleanLine;
+                    let type = 'earn';
+                    let points = '';
 
-                        // 判斷是消費(賺點) 還是 兌換(花點)
-                        // 你的文字裡通常包含 "累積消費" 或 "使用...兌換"
-                        let type = 'earn';
-                        let points = '?';
-                        let desc = '';
+                    // 測試格式 1: 6位數字開頭 (251127)
+                    let matchFormat1 = cleanLine.match(/^(\d{6})/);
+                    // 測試格式 2: 標準日期 (2025-11-27)
+                    let matchFormat2 = cleanLine.match(/^(\d{4}-\d{2}-\d{2})/);
 
-                        if (cleanLine.includes('兌換') || cleanLine.includes('使用')) {
-                            type = 'use';
-                            // 嘗試抓取 "使用X點" 或 "兌換" 附近的數字
-                            // 這裡只做簡單顯示，直接把整句顯示出來最安全
-                            desc = cleanLine.replace(/^\d{6}/, ''); // 把日期去掉剩下的字
-                            
-                            // 試著抓點數數字 (非必要，為了變色用)
-                            let ptsMatch = cleanLine.match(/使用(\d+)點/);
-                            if(ptsMatch) points = "-" + ptsMatch[1];
-                        } else {
-                            type = 'earn';
-                            desc = "消費累積"; // 簡化顯示，或者你可以顯示 "消費xxx元"
-                            
-                            // 試著抓金額
-                            let moneyMatch = cleanLine.match(/消費(\d+)元/);
-                            if(moneyMatch) desc = `消費 $${moneyMatch[1]}`;
-
-                            // 試著抓獲得點數
-                            let ptsMatch = cleanLine.match(/獲得(\d+)點/);
-                            if(ptsMatch) points = "+" + ptsMatch[1];
-                        }
-
-                        records.push({ date: dateStr, desc: desc, points: points, type: type, rawDate: dateRaw });
+                    if (matchFormat1) {
+                        let d = matchFormat1[1];
+                        dateStr = `${d.substr(0,2)}.${d.substr(2,2)}.${d.substr(4,2)}`; // 25.11.27
+                        rawDateVal = d;
+                        desc = cleanLine.substring(6); // 去掉日期後的文字
+                    } else if (matchFormat2) {
+                        let d = matchFormat2[1]; // 2025-11-27
+                        dateStr = d.replace(/-/g, '.').substr(2); // 25.11.27
+                        rawDateVal = d.replace(/-/g, '');
+                        desc = cleanLine.substring(10);
+                    } else {
+                        // 沒抓到日期，就整行顯示，不要丟掉
+                        desc = cleanLine;
                     }
+
+                    // 判斷是消費還是兌換
+                    if (desc.includes('兌換') || desc.includes('使用')) {
+                        type = 'use';
+                        // 嘗試抓點數數字 (例如: 使用5點)
+                        let ptMatch = desc.match(/(\d+)點/);
+                        if (ptMatch) points = "-" + ptMatch[1];
+                    } else {
+                        type = 'earn';
+                        // 嘗試抓點數 (例如: 獲得3點)
+                        let ptMatch = desc.match(/獲得(\d+)點/);
+                        if (ptMatch) points = "+" + ptMatch[1];
+                        
+                        // 簡化描述：只顯示「消費累積」或是把金額抓出來
+                        if(desc.includes('消費')) {
+                            let moneyMatch = desc.match(/(\d+)元/);
+                            if(moneyMatch) desc = `消費 $${moneyMatch[1]}`;
+                            else desc = "消費累積";
+                        }
+                    }
+
+                    records.push({ date: dateStr, desc: desc, points: points, type: type, rawSort: rawDateVal });
                 });
 
-                // 排序：日期新的在上面
-                records.sort((a, b) => b.rawDate.localeCompare(a.rawDate));
+                // 排序 (新的在上面)
+                records.sort((a, b) => b.rawSort.localeCompare(a.rawSort));
 
                 if (records.length === 0) {
-                     // 萬一解析失敗，直接顯示原文 (防呆)
-                     listContainer.innerHTML = `<div style="padding:10px; font-size:12px;">${rawHistory}</div>`;
+                     // 真的沒抓到，就顯示原始文字
+                     listContainer.innerHTML = `<div style="padding:10px; color:#aaa;">${rawHistory || '尚無紀錄'}</div>`;
                 } else {
                     records.forEach(rec => {
                         let div = document.createElement('div');
                         div.className = 'record-row';
-                        
-                        // 根據類型決定右邊數字的顏色
                         let ptsClass = rec.type === 'earn' ? 'pts-plus' : 'pts-minus';
                         
                         div.innerHTML = `
@@ -378,22 +426,22 @@
             const node = document.getElementById('receipt-canvas');
             const btn = document.querySelector('.btn-dl');
             
-            // 讓網頁捲動到最上面，避免截圖跑位 (重要!)
+            // 讓頁面捲動到頂部，避免截圖偏移
             window.scrollTo(0,0);
-            
-            btn.innerText = "生成中...";
+            btn.innerText = "📸 正在拍照...";
             
             html2canvas(node, { 
-                scale: 2, // 高解析度
+                scale: 2, 
                 useCORS: true,
                 backgroundColor: "#ffffff",
-                scrollY: -window.scrollY // 修正捲軸位移
+                scrollY: -window.scrollY, // 修正捲動偏移
+                windowHeight: node.scrollHeight + 100 // 確保截取完整高度
             }).then(canvas => {
                 let link = document.createElement('a');
                 link.download = `箱庭手帳_${document.getElementById('displayUser').innerText}.jpg`;
                 link.href = canvas.toDataURL("image/jpeg", 0.95);
                 link.click();
-                btn.innerText = "下載圖片";
+                btn.innerText = "⬇️ 下載圖片";
             });
         }
     </script>
