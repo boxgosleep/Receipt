@@ -20,49 +20,89 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 30px 0;
+            padding: 20px 0;
             margin: 0;
             color: #333;
             min-height: 100vh;
         }
 
-        /* === 控制面板 === */
+        /* === ✨ UI 優化：手機友善控制面板 === */
         .controls {
-            background: #222;
-            padding: 10px 25px;
-            border-radius: 50px;
-            border: 1px solid #444;
-            margin-bottom: 30px;
+            /* 毛玻璃質感 */
+            background: rgba(30, 30, 30, 0.8);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            
+            padding: 15px 25px;
+            border-radius: 20px; /* 圓角 */
+            margin-bottom: 20px;
+            
             display: flex;
+            flex-wrap: wrap; /* 讓手機版可以換行 */
             gap: 15px;
+            justify-content: center;
             align-items: center;
+            
             color: #aaa;
-            font-size: 13px;
+            font-size: 14px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            
+            /* 讓它在手機上寬度適中 */
+            width: 90%;
+            max-width: 600px;
+            position: sticky; /* 稍微吸頂效果 */
+            top: 20px;
+            z-index: 100;
         }
+
+        /* 下拉選單美化 */
         select { 
-            padding: 5px 10px; 
+            padding: 10px 15px; 
             border: 1px solid #555;
-            background: #333;
-            border-radius: 15px; 
-            color: #eee;
-            font-size: 13px;
+            background: #222;
+            border-radius: 10px; 
+            color: #fff;
+            font-size: 14px;
             outline: none;
+            cursor: pointer;
+            flex: 1; /* 手機上自動拉長比較好點 */
+            min-width: 150px;
         }
+
+        /* 按鈕美化 (CTA風格) */
         .btn-dl { 
-            background: #ddd; 
+            background: #e0e0e0; 
             color: #111; 
             border: none; 
-            padding: 6px 20px; 
-            border-radius: 15px; 
+            padding: 10px 25px; 
+            border-radius: 10px; 
             cursor: pointer; 
             font-weight: 700; 
             transition: 0.2s;
+            font-size: 14px;
+            white-space: nowrap;
+            box-shadow: 0 4px 10px rgba(255,255,255,0.1);
         }
-        .btn-dl:hover { background: #fff; }
+        .btn-dl:hover { background: #fff; transform: translateY(-2px); }
+        .btn-dl:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* === 截圖範圍 === */
+        /* 手機版排版調整 */
+        @media (max-width: 500px) {
+            .controls {
+                flex-direction: column; /* 垂直排列 */
+                gap: 10px;
+            }
+            select, .btn-dl {
+                width: 100%; /* 充滿寬度，方便大拇指點擊 */
+                text-align: center;
+            }
+        }
+
+        /* === 截圖範圍 (聚光燈背景) === */
         #capture-frame {
-            background-color: #0a0a0a; 
+            /* 🔥 改成徑向漸層，讓陰影顯現 */
+            background: radial-gradient(circle at center, #333333 0%, #000000 80%);
+            
             width: 700px;  
             min-height: 900px;
             padding: 60px 0;
@@ -70,6 +110,16 @@
             justify-content: center;
             align-items: center;
             position: relative;
+            
+            /* 手機預覽時自動縮放，不破版 */
+            transform-origin: top center;
+        }
+        
+        /* 讓預覽在手機上不會爆開 */
+        @media (max-width: 720px) {
+            #capture-frame {
+                zoom: 0.5; /* 縮小預覽 */
+            }
         }
 
         /* === 舞台容器 === */
@@ -89,17 +139,16 @@
             overflow: hidden;
         }
 
-        /* === 紙張紋理 (背景圖) === */
+        /* === 紙張紋理 (鎖定大小) === */
         .paper-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #e8e6e1; /* 米灰色紙張 */
+            background-color: #e8e6e1; 
             
             /* SVG 噪點紋理 */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
             
-            /* 🔥🔥🔥 新增這一行！鎖定紋理大小 🔥🔥🔥 */
-            /* 數值越小，紋理越細緻。200px 是剛好配合這個 SVG 的原始設定 */
+            /* 🔥 鎖定紋理大小，防止截圖變粗 */
             background-size: 300px 300px; 
 
             z-index: 1;
@@ -124,7 +173,8 @@
         /* === 中央主卡片 === */
         .main-card {
             z-index: 10;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.6);
+            /* 🔥 加強陰影，配合聚光燈背景 */
+            box-shadow: 0 30px 80px rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             transform: translateY(0);
@@ -184,7 +234,7 @@
             color: #000;
             letter-spacing: 1px;
         }
-        .guest-row span { font-weight: 520; }
+        .guest-row span { font-weight: 520; /* 不粗體 */ }
 
         /* === 列表區域 === */
         .list-area {
@@ -254,10 +304,11 @@
             font-family: 'Courier Prime', monospace;
         }
 
-        .total-box { text-align: right; }
-        .lbl { 
-            /* 🔥 新增這一行：往上推 15px (數字越大越高) */
+        .total-box { 
+            text-align: right;
             padding-bottom: 7px;
+        }
+        .lbl { 
             font-size: 9px; 
             text-transform: uppercase; 
             letter-spacing: 1px; 
@@ -276,12 +327,12 @@
 <body>
 
     <div class="controls">
-        <span>☁️ 集點系統</span>
+        <span style="font-weight:bold;">☁️ HAKONIWA</span>
         <select id="userSelect" onchange="generateReceipt()">
             <option value="">-- 請選擇 ID --</option>
         </select>
         <button class="btn-dl" onclick="downloadImage()">下載集點卡</button>
-        <span id="statusMsg" style="font-size:11px; color:#666;">初始化...</span>
+        <div id="statusMsg" style="width:100%; text-align:center; font-size:11px; margin-top:5px; display:none;">初始化...</div>
     </div>
 
     <div id="capture-frame">
@@ -337,36 +388,36 @@
         let globalData = [];
 
         window.onload = function() {
-            // 🔥 1. 初始化時自動填入當前月份
+            // 自動更新日期
             updateCurrentDate();
+            
+            const msg = document.getElementById('statusMsg');
+            msg.style.display = 'block';
+            msg.innerText = "讀取資料中...";
 
             if(CSV_URL.includes('pubhtml')) {
-                document.getElementById('statusMsg').innerText = "❌ 連結錯誤";
+                msg.innerText = "❌ 連結錯誤";
                 return;
             }
             fetchAndInit();
         };
 
-        // 🔥 自動抓取日期的函式
         function updateCurrentDate() {
             const now = new Date();
             const year = now.getFullYear();
-            // 月份記得 +1，並且補零 (例如 2 -> 02)
             const month = String(now.getMonth() + 1).padStart(2, '0');
-            
-            // 填入 HTML
             document.getElementById('autoDate').innerText = `${year}-${month}`;
         }
 
         function fetchAndInit() {
-            document.getElementById('statusMsg').innerText = "讀取中...";
             Papa.parse(CSV_URL, {
                 download: true, header: true, skipEmptyLines: true,
                 complete: function(results) {
                     if (results.data && results.data.length > 0) {
                         globalData = results.data;
                         initDropdown();
-                        document.getElementById('statusMsg').innerText = "✅ 就緒";
+                        document.getElementById('statusMsg').innerText = "✅ 資料就緒";
+                        setTimeout(() => { document.getElementById('statusMsg').style.display = 'none'; }, 2000);
                     }
                 }
             });
@@ -493,7 +544,8 @@
                 scale: 2, 
                 useCORS: true, 
                 allowTaint: true, 
-                backgroundColor: "#0a0a0a" 
+                // 🔥🔥🔥 重點修正：設為 null，讓背景的聚光燈漸層能被截取到 🔥🔥🔥
+                backgroundColor: null 
             }).then(canvas => {
                 let link = document.createElement('a');
                 link.download = `箱庭集點卡_${userName}.jpg`;
