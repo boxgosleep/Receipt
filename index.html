@@ -24,38 +24,33 @@
             margin: 0;
             color: #333;
             min-height: 100vh;
+            /* 防止手機左右滑動 */
+            overflow-x: hidden; 
         }
 
         /* === ✨ UI 優化：手機友善控制面板 === */
         .controls {
-            /* 毛玻璃質感 */
             background: rgba(30, 30, 30, 0.8);
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
-            
             padding: 15px 25px;
-            border-radius: 20px; /* 圓角 */
+            border-radius: 20px;
             margin-bottom: 20px;
-            
             display: flex;
-            flex-wrap: wrap; /* 讓手機版可以換行 */
+            flex-wrap: wrap;
             gap: 15px;
             justify-content: center;
             align-items: center;
-            
             color: #aaa;
             font-size: 14px;
             box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-            
-            /* 讓它在手機上寬度適中 */
             width: 90%;
             max-width: 600px;
-            position: sticky; /* 稍微吸頂效果 */
+            position: sticky;
             top: 20px;
             z-index: 100;
         }
 
-        /* 下拉選單美化 */
         select { 
             padding: 10px 15px; 
             border: 1px solid #555;
@@ -65,11 +60,10 @@
             font-size: 14px;
             outline: none;
             cursor: pointer;
-            flex: 1; /* 手機上自動拉長比較好點 */
+            flex: 1;
             min-width: 150px;
         }
 
-        /* 按鈕美化 (CTA風格) */
         .btn-dl { 
             background: #e0e0e0; 
             color: #111; 
@@ -86,24 +80,19 @@
         .btn-dl:hover { background: #fff; transform: translateY(-2px); }
         .btn-dl:disabled { opacity: 0.6; cursor: not-allowed; }
 
-        /* 手機版排版調整 */
         @media (max-width: 500px) {
-            .controls {
-                flex-direction: column; /* 垂直排列 */
-                gap: 10px;
-            }
-            select, .btn-dl {
-                width: 100%; /* 充滿寬度，方便大拇指點擊 */
-                text-align: center;
-            }
+            .controls { flex-direction: column; gap: 10px; }
+            select, .btn-dl { width: 100%; text-align: center; }
         }
 
         /* === 截圖範圍 (聚光燈背景) === */
         #capture-frame {
-            /* 🔥 改成徑向漸層，讓陰影顯現 */
             background: radial-gradient(circle at center, #333333 0%, #000000 80%);
             
-            width: 700px;  
+            /* 🔥🔥🔥 修改點 1：強制固定寬度，不讓 CSS 響應式改變它 🔥🔥🔥 */
+            width: 700px !important;  
+            min-width: 700px;
+            
             min-height: 900px;
             padding: 60px 0;
             display: flex;
@@ -111,16 +100,12 @@
             align-items: center;
             position: relative;
             
-            /* 手機預覽時自動縮放，不破版 */
+            /* 設定變形原點在上方，方便 JS 縮放時對齊 */
             transform-origin: top center;
+            flex-shrink: 0; 
         }
         
-        /* 讓預覽在手機上不會爆開 */
-        @media (max-width: 720px) {
-            #capture-frame {
-                zoom: 0.5; /* 縮小預覽 */
-            }
-        }
+        /* 🔥🔥🔥 修改點 2：刪除了原本這裡的 @media zoom 設定，改用 JS 控制 🔥🔥🔥 */
 
         /* === 舞台容器 === */
         .stage-container {
@@ -139,18 +124,13 @@
             overflow: hidden;
         }
 
-        /* === 紙張紋理 (鎖定大小) === */
+        /* === 紙張紋理 === */
         .paper-bg {
             position: absolute;
             top: 0; left: 0; width: 100%; height: 100%;
             background-color: #e8e6e1; 
-            
-            /* SVG 噪點紋理 */
             background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
-            
-            /* 🔥 鎖定紋理大小，防止截圖變粗 */
             background-size: 300px 300px; 
-
             z-index: 1;
         }
 
@@ -173,7 +153,6 @@
         /* === 中央主卡片 === */
         .main-card {
             z-index: 10;
-            /* 🔥 加強陰影，配合聚光燈背景 */
             box-shadow: 0 30px 80px rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
@@ -234,9 +213,8 @@
             color: #000;
             letter-spacing: 1px;
         }
-        .guest-row span { font-weight: 520; /* 不粗體 */ }
+        .guest-row span { font-weight: 520; }
 
-        /* === 列表區域 === */
         .list-area {
             flex: 1;
             display: flex;
@@ -286,7 +264,6 @@
         .p-plus { color: #111; }
         .p-minus { color: #555; } 
 
-        /* 底部 */
         .footer {
             margin-top: auto;
             padding-top: 30px;
@@ -304,10 +281,7 @@
             font-family: 'Courier Prime', monospace;
         }
 
-        .total-box { 
-            text-align: right;
-            
-        }
+        .total-box { text-align: right; }
         .lbl {
             padding-bottom: 9px; 
             font-size: 9px; 
@@ -338,35 +312,28 @@
 
     <div id="capture-frame">
         <div class="stage-container">
-            
             <div class="card side-card side-left">
                 <div class="paper-bg"></div>
             </div>
-
             <div class="card side-card side-right">
                 <div class="paper-bg"></div>
             </div>
-
             <div class="card main-card">
                 <div class="paper-bg"></div>
                 <div class="giant-text">HAKONIWA</div>
-
                 <div class="content-layer">
                     <div class="top-header">
                         <span class="brand-name">HAKONIWA IRUME</span>
                         <span class="card-title">集點卡</span>
                     </div>
-
                     <div class="guest-row">
                         GUEST NO. <span id="displayUser">---</span>
                     </div>
-
                     <div class="list-area" id="recordList">
                         <div style="color:#aaa; margin-top:100px; font-size:11px;">
                             WAITING FOR DATA...
                         </div>
                     </div>
-
                     <div class="footer">
                         <div class="footer-info">
                             OFFICIAL EVENT<br>
@@ -379,7 +346,6 @@
                     </div>
                 </div>
             </div>
-
         </div>
     </div>
 
@@ -389,9 +355,12 @@
         let globalData = [];
 
         window.onload = function() {
-            // 自動更新日期
             updateCurrentDate();
             
+            // 🔥🔥🔥 修改點 3：初始化時執行一次視覺縮放預覽，並監聽視窗變化 🔥🔥🔥
+            autoScalePreview();
+            window.addEventListener('resize', autoScalePreview);
+
             const msg = document.getElementById('statusMsg');
             msg.style.display = 'block';
             msg.innerText = "讀取資料中...";
@@ -402,6 +371,26 @@
             }
             fetchAndInit();
         };
+
+        // 🔥🔥🔥 修改點 4：新增自動縮放函數 (只縮放視覺，不改變實際排版) 🔥🔥🔥
+        function autoScalePreview() {
+            const frame = document.getElementById('capture-frame');
+            const screenWidth = window.innerWidth;
+            const targetWidth = 720; // 理想的卡片容器寬度 (比 700 稍大一點)
+
+            if (screenWidth < targetWidth) {
+                // 計算縮放比例
+                const scale = screenWidth / targetWidth;
+                // 套用縮放
+                frame.style.transform = `scale(${scale})`;
+                // 因為 scale 是縮放顯示，下方會留白，所以要把下方 margin 拉回來
+                // 計算公式大致為：原始高度 * (1 - 比例)
+                frame.style.marginBottom = `-${(1 - scale) * 900}px`; 
+            } else {
+                frame.style.transform = 'none';
+                frame.style.marginBottom = '0px';
+            }
+        }
 
         function updateCurrentDate() {
             const now = new Date();
@@ -541,23 +530,43 @@
             btn.disabled = true; 
             window.scrollTo(0,0);
             
+            // 🔥🔥🔥 修改點 5：截圖瞬間，先把縮小效果拿掉，讓它恢復「電腦版」大小 🔥🔥🔥
+            const currentTransform = node.style.transform;
+            const currentMargin = node.style.marginBottom;
+            
+            // 暫時移除縮放
+            node.style.transform = 'none';
+            node.style.margin = '0'; 
+            
             html2canvas(node, { 
                 scale: 2, 
                 useCORS: true, 
                 allowTaint: true, 
-                // 🔥🔥🔥 重點修正：設為 null，讓背景的聚光燈漸層能被截取到 🔥🔥🔥
-                backgroundColor: null 
+                backgroundColor: null,
+                // 🔥 強制告訴 html2canvas 畫布要這麼寬，避免被手機視窗寬度影響
+                width: 700,
+                windowWidth: 700 
             }).then(canvas => {
                 let link = document.createElement('a');
                 link.download = `箱庭集點卡_${userName}.jpg`;
                 link.href = canvas.toDataURL("image/jpeg", 0.95);
                 document.body.appendChild(link); link.click(); document.body.removeChild(link);
+                
                 btn.innerText = originalText; btn.disabled = false;
+
+                // 🔥 截圖完畢，把手機預覽的縮放效果加回去
+                node.style.transform = currentTransform;
+                node.style.marginBottom = currentMargin;
+                
             }).catch(err => { 
                 console.error(err); 
                 alert("下載失敗"); 
                 btn.innerText = originalText; 
                 btn.disabled = false; 
+
+                // 失敗也要復原
+                node.style.transform = currentTransform;
+                node.style.marginBottom = currentMargin;
             });
         }
     </script>
