@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
     <style>
         /* === 基礎設定 === */
@@ -99,8 +99,8 @@
             color: #aaa;
             text-transform: uppercase;
             white-space: nowrap;
-            margin-top: 60px;
-            margin-bottom: 60px;
+            margin-top: 80px;
+            margin-bottom: 40px;
         }
 
         .sidebar-footer {
@@ -422,26 +422,47 @@
             }
         }
 
+        // === 修正後的下載函數 ===
         function downloadImage() {
             const node = document.getElementById('receipt-canvas');
             const btn = document.querySelector('.btn-dl');
+            const userName = document.getElementById('displayUser').innerText;
             
-            // 讓頁面捲動到頂部，避免截圖偏移
+            // 1. 防呆
+            if (userName === "---" || userName === "") {
+                alert("請先選擇一位客人才能下載喔！");
+                return;
+            }
+
+            // 2. UI 回饋
+            const originalText = btn.innerText;
+            btn.innerText = "📸 處理中...";
+            btn.disabled = true; 
+            
+            // 3. 關鍵修正：捲動到頂部
             window.scrollTo(0,0);
-            btn.innerText = "📸 正在拍照...";
             
             html2canvas(node, { 
                 scale: 2, 
                 useCORS: true,
-                backgroundColor: "#ffffff",
-                scrollY: -window.scrollY, // 修正捲動偏移
-                windowHeight: node.scrollHeight + 100 // 確保截取完整高度
+                allowTaint: true,
+                backgroundColor: "#ffffff", 
+                scrollY: 0, 
             }).then(canvas => {
                 let link = document.createElement('a');
-                link.download = `箱庭手帳_${document.getElementById('displayUser').innerText}.jpg`;
+                link.download = `箱庭手帳_${userName}.jpg`;
                 link.href = canvas.toDataURL("image/jpeg", 0.95);
+                document.body.appendChild(link); 
                 link.click();
-                btn.innerText = "⬇️ 下載圖片";
+                document.body.removeChild(link); 
+                
+                btn.innerText = originalText;
+                btn.disabled = false;
+            }).catch(err => {
+                console.error("截圖失敗:", err);
+                alert("圖片生成失敗 QQ\n請按 F12 看 Console 錯誤訊息。");
+                btn.innerText = originalText;
+                btn.disabled = false;
             });
         }
     </script>
