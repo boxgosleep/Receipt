@@ -3,254 +3,302 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>箱庭入夢 - 集點手帳生成器</title>
+    <title>箱庭入夢 - 集點手帳</title>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
 
     <style>
-        /* === 全站基礎設定 === */
+        /* === 基礎設定 === */
         body {
             font-family: 'Noto Serif TC', serif;
-            background-color: #f4f4f4;
+            background-color: #f0f2f5;
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 30px;
             color: #555;
+            margin: 0;
         }
 
-        /* === 控制面板 (店員操作區) === */
+        /* === 控制面板 === */
         .controls {
             background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
+            padding: 25px;
+            border-radius: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+            margin-bottom: 30px;
             text-align: center;
             width: 100%;
-            max-width: 500px;
+            max-width: 400px;
+            border: 1px solid #eef;
         }
+        .controls h3 { margin-top: 0; color: #8faecf; }
         input {
-            padding: 10px;
+            padding: 12px;
             border: 1px solid #ddd;
-            border-radius: 5px;
+            border-radius: 8px;
+            width: 70%;
+            text-align: center;
             font-family: inherit;
-            width: 60%;
+            margin-bottom: 10px;
         }
         button {
-            padding: 10px 20px;
-            background: #a1c4fd;
+            padding: 10px 25px;
             border: none;
-            color: white;
-            border-radius: 5px;
+            border-radius: 30px;
             cursor: pointer;
             font-family: inherit;
             transition: 0.3s;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
-        button:hover { background: #84fab0; }
+        .btn-gen { background: #a1c4fd; color: white; }
+        .btn-dl { background: #fad0c4; color: white; margin-left: 10px; }
+        button:hover { transform: translateY(-2px); box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
 
-        /* === 收據卡片設計 (參考參考圖風格) === */
+        /* === 收據卡片設計 (核心設計區) === */
         #receipt-canvas {
-            width: 450px; /* 卡片寬度 */
-            min-height: 600px;
-            background: white;
-            /* 模擬書本紙張質感 */
-            background-image: 
-                linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
-                url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><text x="10" y="50" style="font-size:20px;opacity:0.03">Hakoniwa</text></svg>');
+            width: 500px; 
+            min-height: 700px;
+            background: #fff;
             position: relative;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.1);
             overflow: hidden;
             display: flex;
-            flex-direction: column;
+            /* 模擬紙張紋理 */
+            background-image: repeating-linear-gradient(45deg, #fffcfc 25%, transparent 25%, transparent 75%, #fffcfc 75%, #fffcfc), repeating-linear-gradient(45deg, #fffcfc 25%, #fff 25%, #fff 75%, #fffcfc 75%, #fffcfc);
+            background-position: 0 0, 10px 10px;
+            background-size: 20px 20px;
         }
 
-        /* 背景裝飾：淡彩漸層 */
-        .bg-deco-top {
+        /* 裝飾：夢幻漸層光暈 (參考圖的粉/藍氛圍) */
+        .gradient-orb {
             position: absolute;
-            top: -50px; left: -50px;
-            width: 300px; height: 300px;
-            background: radial-gradient(circle, #fad0c4 0%, transparent 70%);
-            opacity: 0.6;
+            border-radius: 50%;
+            filter: blur(60px);
             z-index: 0;
         }
-        .bg-deco-bottom {
-            position: absolute;
-            bottom: -50px; right: -50px;
-            width: 350px; height: 350px;
-            background: radial-gradient(circle, #a1c4fd 0%, transparent 70%);
-            opacity: 0.5;
-            z-index: 0;
-        }
+        .orb-1 { top: -50px; right: -50px; width: 300px; height: 300px; background: rgba(161, 196, 253, 0.4); } /* 淺藍 */
+        .orb-2 { bottom: -50px; left: -50px; width: 350px; height: 350px; background: rgba(250, 208, 196, 0.4); } /* 淺粉 */
 
         /* 內容佈局 */
-        .card-content {
+        .layout-container {
             position: relative;
-            z-index: 1;
-            padding: 40px;
-            flex-grow: 1;
+            z-index: 2;
+            width: 100%;
             display: flex;
+            padding: 40px;
         }
 
-        /* 左側：直排標題區 */
+        /* 左側：直排標題 (模擬書脊) */
         .sidebar {
-            width: 60px;
-            border-right: 1px solid #eee;
-            margin-right: 25px;
+            width: 70px;
+            border-right: 1px solid rgba(0,0,0,0.05);
+            margin-right: 30px;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
+            padding-top: 20px;
+            padding-bottom: 20px;
         }
-        .vertical-title {
-            writing-mode: vertical-rl; /* 直排文字 */
+        .vertical-text {
+            writing-mode: vertical-rl;
             text-orientation: mixed;
-            font-size: 28px;
-            letter-spacing: 8px;
-            color: #8faecf; /* 淡灰藍色 */
+            letter-spacing: 0.8em;
+            color: #8faecf; /* 主題藍色 */
+            font-size: 24px;
             font-weight: 300;
         }
-        .author-sign {
-            margin-top: 20px;
-            font-size: 10px;
-            color: #bbb;
-            text-transform: uppercase;
-            letter-spacing: 2px;
+        .logo-text {
             writing-mode: vertical-rl;
+            font-size: 10px;
+            letter-spacing: 2px;
+            color: #ccc;
+            text-transform: uppercase;
         }
 
-        /* 右側：紀錄列表區 */
-        .main-area {
-            flex-grow: 1;
+        /* 右側：主要內容區 */
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
         }
-        .user-info {
+
+        .header-info {
+            text-align: right;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #fad0c4; /* 粉色裝飾線 */
+            padding-bottom: 15px;
+        }
+        .user-id {
             font-size: 14px;
             color: #aaa;
-            margin-bottom: 20px;
-            text-align: right;
-            border-bottom: 1px solid #f0f0f0;
-            padding-bottom: 10px;
+            letter-spacing: 1px;
         }
+        .user-name {
+            font-size: 22px;
+            color: #555;
+            margin-top: 5px;
+            font-weight: 500;
+        }
+
+        /* 列表樣式 */
         .record-list {
             list-style: none;
             padding: 0;
             margin: 0;
-            font-size: 13px;
-            line-height: 2.2; /* 寬鬆行距 */
+            flex-grow: 1;
         }
-        .record-list li {
+        .record-item {
             display: flex;
             justify-content: space-between;
-            border-bottom: 1px dashed #f5f5f5;
+            align-items: baseline;
+            margin-bottom: 12px;
+            font-size: 13px;
+            border-bottom: 1px dashed #eee;
+            padding-bottom: 8px;
         }
-        .date { color: #ccc; margin-right: 10px; font-family: monospace; }
-        .desc { color: #666; }
-        .points-earn { color: #84fab0; font-weight: bold; } /* 獲得點數顏色 */
-        .points-use { color: #fad0c4; font-weight: bold; } /* 使用點數顏色 */
+        .item-date {
+            font-family: 'Courier New', monospace; /* 日期用等寬字體比較整齊 */
+            color: #bbb;
+            margin-right: 10px;
+            font-size: 12px;
+        }
+        .item-desc { color: #666; flex: 1; }
+        .item-points { font-weight: bold; margin-left: 10px; }
+        .p-earn { color: #8faecf; } /* 獲得點數顏色 */
+        .p-use { color: #fab1a0; }  /* 使用點數顏色 */
 
-        /* 底部總結區 */
-        .footer-area {
-            position: relative;
-            z-index: 1;
-            padding: 20px 40px;
+        /* 底部總結 */
+        .footer-summary {
+            margin-top: 30px;
             text-align: right;
+            position: relative;
         }
         .total-label {
-            font-size: 12px;
+            font-size: 11px;
             color: #ccc;
             letter-spacing: 2px;
+            text-transform: uppercase;
         }
-        .total-score {
-            font-size: 42px;
-            color: #a1c4fd;
+        .total-points {
+            font-size: 48px;
+            color: #8faecf;
+            line-height: 1;
             font-weight: 300;
-        }
-        .footer-note {
-            font-size: 10px;
-            color: #ddd;
             margin-top: 5px;
-            text-align: center;
         }
-        
-        /* 裝飾性的小星星 */
-        .star { position: absolute; color: #ddd; opacity: 0.5; font-size: 10px; }
+        .total-unit { font-size: 16px; margin-left: 5px; }
+
+        /* 裝飾性的小幾何圖形 */
+        .deco-star {
+            position: absolute;
+            color: #fad0c4;
+            font-size: 20px;
+            opacity: 0.6;
+        }
     </style>
 </head>
 <body>
 
     <div class="controls">
         <h3>☁️ 箱庭入夢・集點櫃台</h3>
-        <p style="font-size:12px; color:#888;">輸入噗浪 ID 即可自動生成收據</p>
         <input type="text" id="userIdInput" placeholder="請輸入噗浪 ID (例如: namida127_draw)">
-        <button onclick="generateReceipt()">🔍 生成收據</button>
-        <button onclick="downloadImage()" style="background:#fad0c4; margin-left:10px;">⬇️ 下載圖片</button>
+        <br>
+        <button class="btn-gen" onclick="generateReceipt()">生成手帳</button>
+        <button class="btn-dl" onclick="downloadImage()">下載圖片</button>
+        <p id="statusMsg" style="font-size:12px; color:#aaa; margin-top:10px;">系統準備就緒</p>
     </div>
 
     <div id="receipt-canvas">
-        <div class="bg-deco-top"></div>
-        <div class="bg-deco-bottom"></div>
-        
-        <div class="star" style="top:50px; left:80px;">✦</div>
-        <div class="star" style="bottom:100px; left:40px;">✦</div>
-        <div class="star" style="top:150px; right:50px;">*</div>
+        <div class="gradient-orb orb-1"></div>
+        <div class="gradient-orb orb-2"></div>
+        <div class="deco-star" style="top:40px; left:120px;">✦</div>
+        <div class="deco-star" style="bottom:80px; left:60px;">✦</div>
+        <div class="deco-star" style="top:150px; right:40px;">*</div>
 
-        <div class="card-content">
+        <div class="layout-container">
             <div class="sidebar">
-                <div class="vertical-title">箱庭入夢</div>
-                <div class="author-sign">Hakoniwa Irume</div>
-                <div class="vertical-title" style="font-size:16px; margin-top:30px; color:#ddd;">集點手帳</div>
+                <div class="vertical-text">深秋入冬</div>
+                <div class="logo-text">Hakoniwa Irume</div>
+                <div class="vertical-text" style="font-size: 14px; margin-top: auto;">集點手帳</div>
             </div>
 
-            <div class="main-area">
-                <div class="user-info">Guest: @<span id="displayUser">---</span></div>
-                
+            <div class="main-content">
+                <div class="header-info">
+                    <div class="user-id">PLURK ID</div>
+                    <div class="user-name">@<span id="displayUser">---</span></div>
+                </div>
+
                 <ul class="record-list" id="recordList">
-                    <li><span class="desc">等待查詢中...</span></li>
+                    <li style="text-align:center; color:#ddd; margin-top:50px;">等待輸入 ID...</li>
                 </ul>
-            </div>
-        </div>
 
-        <div class="footer-area">
-            <div class="total-label">CURRENT POINTS</div>
-            <div class="total-score" id="totalPoints">0</div>
-            <div class="footer-note">具體兌換規則請至置頂噗 (回饋福利)</div>
+                <div class="footer-summary">
+                    <div class="total-label">Current Points</div>
+                    <div class="total-points"><span id="totalPoints">0</span><span class="total-unit">pts</span></div>
+                    <div style="font-size: 10px; color: #ddd; margin-top: 10px;">
+                        具體兌換規則請至置頂噗 (回饋福利)
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
     <script>
-        // ==========================================
-        // CONFIG: 請在這裡貼上你第一步取得的 CSV 連結
-        // ==========================================
-        const SHEET_CONSUME_URL = '請貼上消費紀錄的CSV連結'; 
-        const SHEET_REDEEM_URL = '請貼上兌換紀錄的CSV連結';
-        // ==========================================
+        // === 資料來源設定 (你提供的連結) ===
+        const URL_CONSUME = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?gid=1022565365&single=true&output=csv';
+        const URL_REDEEM = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?gid=1106654600&single=true&output=csv';
 
         let consumeData = [];
         let redeemData = [];
+        let isDataLoaded = false;
 
-        // 初始化：載入 Google Sheet 資料
+        // 頁面載入時自動抓取資料
         window.onload = function() {
-            loadData(SHEET_CONSUME_URL, data => consumeData = data);
-            loadData(SHEET_REDEEM_URL, data => redeemData = data);
+            updateStatus("正在讀取箱庭紀錄...");
+            Promise.all([
+                fetchData(URL_CONSUME),
+                fetchData(URL_REDEEM)
+            ]).then(results => {
+                consumeData = results[0];
+                redeemData = results[1];
+                isDataLoaded = true;
+                updateStatus("資料載入完成，請輸入 ID");
+                console.log("消費紀錄:", consumeData);
+                console.log("兌換紀錄:", redeemData);
+            }).catch(err => {
+                updateStatus("資料讀取失敗，請檢查網路");
+                console.error(err);
+            });
         };
 
-        function loadData(url, callback) {
-            if(url.includes('請貼上')) return; // 防呆
-            Papa.parse(url, {
-                download: true,
-                header: true, // 假設第一行是標題
-                complete: function(results) {
-                    callback(results.data);
-                    console.log("Data loaded:", results.data);
-                }
+        function fetchData(url) {
+            return new Promise((resolve, reject) => {
+                Papa.parse(url, {
+                    download: true,
+                    header: false, // 不使用標題模式，直接用 index 抓比較穩
+                    complete: function(results) {
+                        resolve(results.data);
+                    },
+                    error: function(err) {
+                        reject(err);
+                    }
+                });
             });
         }
 
+        function updateStatus(msg) {
+            document.getElementById('statusMsg').innerText = msg;
+        }
+
         function generateReceipt() {
+            if (!isDataLoaded) { alert("資料還在讀取中，請稍等..."); return; }
+            
             const userId = document.getElementById('userIdInput').value.trim();
             if (!userId) { alert("請輸入 ID！"); return; }
-            if (consumeData.length === 0) { alert("資料尚未載入，請稍後再試或檢查 CSV 連結。"); return; }
 
             document.getElementById('displayUser').innerText = userId;
             const listContainer = document.getElementById('recordList');
@@ -259,97 +307,97 @@
             let totalPoints = 0;
             let allRecords = [];
 
-            // 1. 處理消費紀錄
-            // 假設 CSV 欄位名稱分別是 (請根據你的實際 CSV 標題修改)：
-            // ID欄位名: 'ID', 日期欄位名: '日期', 金額欄位名: '金額'
-            // *如果不確定，可以在瀏覽器 Console 看到印出的 data
-            
-            // 下面用 ColumnIndex 來抓比較保險 (0=A, 1=B, 2=C...)
-            // PapaParse 若無 header:true 則回傳陣列
-            // 這裡假設有 header，需根據你的表格實際標題修改
-            // 為了方便，這裡改寫成簡單過濾邏輯
-            
-            consumeData.forEach(row => {
-                // 為了通用性，這裡假設 ID 在 'A' 欄位 (row['ID'] 或 row[0])
-                // 你可能需要根據實際 CSV 的標頭名稱修改這裡
-                let rID = row['ID'] || row[Object.keys(row)[0]]; 
-                let rDate = row['日期'] || row[Object.keys(row)[1]];
-                let rMoney = row['金額'] || row[Object.keys(row)[2]];
+            // === 1. 處理消費紀錄 (根據你的截圖推測結構) ===
+            // 假設欄位順序: Col A (0)=ID, Col B (1)=日期, Col C (2)=金額
+            consumeData.forEach((row, index) => {
+                if (index === 0) return; // 跳過標題列
+                if (!row[0]) return;     // 跳過空行
 
-                if (rID == userId) {
-                    let pts = Math.floor(parseInt(rMoney) / 800); // 你的公式 logic
-                    totalPoints += pts;
-                    allRecords.push({
-                        type: 'earn',
-                        date: formatDate(rDate),
-                        text: `累積消費 ${rMoney} 元`,
-                        points: pts
-                    });
+                // 模糊比對 ID (忽略大小寫與空白)
+                if (row[0].trim().toLowerCase() === userId.toLowerCase()) {
+                    let amount = parseInt(row[2]); // 金額
+                    if (!isNaN(amount)) {
+                        let pts = Math.floor(amount / 800); // 你的公式: 800元一點
+                        totalPoints += pts;
+                        allRecords.push({
+                            type: 'earn',
+                            date: formatSheetDate(row[1]),
+                            text: `累積消費 ${amount} 元`,
+                            points: pts
+                        });
+                    }
                 }
             });
 
-            // 2. 處理兌換紀錄
-            redeemData.forEach(row => {
-                let rID = row['ID'] || row[Object.keys(row)[0]];
-                let rDate = row['日期'] || row[Object.keys(row)[1]];
-                let rItem = row['項目'] || row[Object.keys(row)[2]];
-                let rCost = row['點數'] || row[Object.keys(row)[3]];
+            // === 2. 處理兌換紀錄 ===
+            // 假設欄位順序: Col A (0)=ID, Col B (1)=日期, Col C (2)=項目, Col D (3)=使用點數
+            redeemData.forEach((row, index) => {
+                if (index === 0) return; 
+                if (!row[0]) return;
 
-                if (rID == userId) {
-                    let cost = parseInt(rCost);
-                    totalPoints -= cost;
-                    allRecords.push({
-                        type: 'use',
-                        date: formatDate(rDate),
-                        text: `兌換 ${rItem}`,
-                        points: cost
-                    });
+                if (row[0].trim().toLowerCase() === userId.toLowerCase()) {
+                    let cost = parseInt(row[3]); // 點數
+                    if (!isNaN(cost)) {
+                        totalPoints -= cost;
+                        allRecords.push({
+                            type: 'use',
+                            date: formatSheetDate(row[1]),
+                            text: `兌換 ${row[2]}`,
+                            points: cost
+                        });
+                    }
                 }
             });
 
-            // 3. 排序 (日期新 -> 舊)
+            // === 3. 排序 (日期新 -> 舊) ===
             allRecords.sort((a, b) => b.date.localeCompare(a.date));
 
-            // 4. 渲染到畫面上
+            // === 4. 渲染到畫面 ===
             if (allRecords.length === 0) {
-                listContainer.innerHTML = '<li><span class="desc">目前沒有紀錄</span></li>';
+                listContainer.innerHTML = '<li style="text-align:center; color:#ddd; margin-top:50px;">查無此 ID 的紀錄</li>';
             } else {
                 allRecords.forEach(rec => {
-                    let pointHtml = rec.type === 'earn' 
-                        ? `<span class="points-earn">+${rec.points}</span>` 
-                        : `<span class="points-use">-${rec.points}</span>`;
+                    // 根據是獲得還是使用，顯示不同顏色
+                    let pointClass = rec.type === 'earn' ? 'p-earn' : 'p-use';
+                    let sign = rec.type === 'earn' ? '+' : '-';
                     
-                    let html = `
-                        <span class="date">${rec.date}</span>
-                        <span class="desc">${rec.text}</span>
-                        ${pointHtml}
-                    `;
                     let li = document.createElement('li');
-                    li.innerHTML = html;
+                    li.className = 'record-item';
+                    li.innerHTML = `
+                        <span class="item-date">${rec.date}</span>
+                        <span class="item-desc">${rec.text}</span>
+                        <span class="item-points ${pointClass}">${sign}${rec.points}</span>
+                    `;
                     listContainer.appendChild(li);
                 });
             }
 
+            // 更新總分
             document.getElementById('totalPoints').innerText = totalPoints;
         }
 
-        // 輔助：日期格式化 (YYMMDD)
-        function formatDate(dateStr) {
-            // 嘗試解析日期，如果格式不一可能需要調整
-            let d = new Date(dateStr);
-            if (isNaN(d.getTime())) return dateStr; // 解析失敗就回傳原字串
-            let yy = d.getFullYear().toString().substr(-2);
-            let mm = (d.getMonth() + 1).toString().padStart(2, '0');
-            let dd = d.getDate().toString().padStart(2, '0');
-            return `${yy}${mm}${dd}`;
+        // 日期格式化工具 (YYYY/MM/DD -> YY.MM.DD)
+        function formatSheetDate(dateStr) {
+            if (!dateStr) return "";
+            // 簡單處理：如果是 YYYY/MM/DD 或 YYYY-MM-DD
+            let cleanDate = dateStr.replace(/-/g, '/');
+            let dateObj = new Date(cleanDate);
+            
+            if (isNaN(dateObj.getTime())) return dateStr; // 無法解析就回傳原字串
+
+            let yy = dateObj.getFullYear().toString().substr(-2);
+            let mm = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+            let dd = dateObj.getDate().toString().padStart(2, '0');
+            return `${yy}.${mm}.${dd}`;
         }
 
         // 下載圖片
         function downloadImage() {
             const node = document.getElementById('receipt-canvas');
-            html2canvas(node, { scale: 2 }).then(canvas => {
+            // scale: 2 可以讓圖片解析度變高 (Retina等級)
+            html2canvas(node, { scale: 2, backgroundColor: null }).then(canvas => {
                 let link = document.createElement('a');
-                link.download = '集點卡_' + document.getElementById('displayUser').innerText + '.jpg';
+                link.download = `箱庭手帳_${document.getElementById('displayUser').innerText}.jpg`;
                 link.href = canvas.toDataURL("image/jpeg", 0.9);
                 link.click();
             });
