@@ -1,0 +1,359 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>箱庭入夢 - 集點手帳生成器</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@300;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+    <script src="https://html2canvas.hertzen.com/dist/html2canvas.min.js"></script>
+
+    <style>
+        /* === 全站基礎設定 === */
+        body {
+            font-family: 'Noto Serif TC', serif;
+            background-color: #f4f4f4;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            color: #555;
+        }
+
+        /* === 控制面板 (店員操作區) === */
+        .controls {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            text-align: center;
+            width: 100%;
+            max-width: 500px;
+        }
+        input {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-family: inherit;
+            width: 60%;
+        }
+        button {
+            padding: 10px 20px;
+            background: #a1c4fd;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            cursor: pointer;
+            font-family: inherit;
+            transition: 0.3s;
+        }
+        button:hover { background: #84fab0; }
+
+        /* === 收據卡片設計 (參考參考圖風格) === */
+        #receipt-canvas {
+            width: 450px; /* 卡片寬度 */
+            min-height: 600px;
+            background: white;
+            /* 模擬書本紙張質感 */
+            background-image: 
+                linear-gradient(135deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.9)),
+                url('data:image/svg+xml;utf8,<svg width="100" height="100" xmlns="http://www.w3.org/2000/svg"><text x="10" y="50" style="font-size:20px;opacity:0.03">Hakoniwa</text></svg>');
+            position: relative;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* 背景裝飾：淡彩漸層 */
+        .bg-deco-top {
+            position: absolute;
+            top: -50px; left: -50px;
+            width: 300px; height: 300px;
+            background: radial-gradient(circle, #fad0c4 0%, transparent 70%);
+            opacity: 0.6;
+            z-index: 0;
+        }
+        .bg-deco-bottom {
+            position: absolute;
+            bottom: -50px; right: -50px;
+            width: 350px; height: 350px;
+            background: radial-gradient(circle, #a1c4fd 0%, transparent 70%);
+            opacity: 0.5;
+            z-index: 0;
+        }
+
+        /* 內容佈局 */
+        .card-content {
+            position: relative;
+            z-index: 1;
+            padding: 40px;
+            flex-grow: 1;
+            display: flex;
+        }
+
+        /* 左側：直排標題區 */
+        .sidebar {
+            width: 60px;
+            border-right: 1px solid #eee;
+            margin-right: 25px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .vertical-title {
+            writing-mode: vertical-rl; /* 直排文字 */
+            text-orientation: mixed;
+            font-size: 28px;
+            letter-spacing: 8px;
+            color: #8faecf; /* 淡灰藍色 */
+            font-weight: 300;
+        }
+        .author-sign {
+            margin-top: 20px;
+            font-size: 10px;
+            color: #bbb;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            writing-mode: vertical-rl;
+        }
+
+        /* 右側：紀錄列表區 */
+        .main-area {
+            flex-grow: 1;
+        }
+        .user-info {
+            font-size: 14px;
+            color: #aaa;
+            margin-bottom: 20px;
+            text-align: right;
+            border-bottom: 1px solid #f0f0f0;
+            padding-bottom: 10px;
+        }
+        .record-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            font-size: 13px;
+            line-height: 2.2; /* 寬鬆行距 */
+        }
+        .record-list li {
+            display: flex;
+            justify-content: space-between;
+            border-bottom: 1px dashed #f5f5f5;
+        }
+        .date { color: #ccc; margin-right: 10px; font-family: monospace; }
+        .desc { color: #666; }
+        .points-earn { color: #84fab0; font-weight: bold; } /* 獲得點數顏色 */
+        .points-use { color: #fad0c4; font-weight: bold; } /* 使用點數顏色 */
+
+        /* 底部總結區 */
+        .footer-area {
+            position: relative;
+            z-index: 1;
+            padding: 20px 40px;
+            text-align: right;
+        }
+        .total-label {
+            font-size: 12px;
+            color: #ccc;
+            letter-spacing: 2px;
+        }
+        .total-score {
+            font-size: 42px;
+            color: #a1c4fd;
+            font-weight: 300;
+        }
+        .footer-note {
+            font-size: 10px;
+            color: #ddd;
+            margin-top: 5px;
+            text-align: center;
+        }
+        
+        /* 裝飾性的小星星 */
+        .star { position: absolute; color: #ddd; opacity: 0.5; font-size: 10px; }
+    </style>
+</head>
+<body>
+
+    <div class="controls">
+        <h3>☁️ 箱庭入夢・集點櫃台</h3>
+        <p style="font-size:12px; color:#888;">輸入噗浪 ID 即可自動生成收據</p>
+        <input type="text" id="userIdInput" placeholder="請輸入噗浪 ID (例如: namida127_draw)">
+        <button onclick="generateReceipt()">🔍 生成收據</button>
+        <button onclick="downloadImage()" style="background:#fad0c4; margin-left:10px;">⬇️ 下載圖片</button>
+    </div>
+
+    <div id="receipt-canvas">
+        <div class="bg-deco-top"></div>
+        <div class="bg-deco-bottom"></div>
+        
+        <div class="star" style="top:50px; left:80px;">✦</div>
+        <div class="star" style="bottom:100px; left:40px;">✦</div>
+        <div class="star" style="top:150px; right:50px;">*</div>
+
+        <div class="card-content">
+            <div class="sidebar">
+                <div class="vertical-title">箱庭入夢</div>
+                <div class="author-sign">Hakoniwa Irume</div>
+                <div class="vertical-title" style="font-size:16px; margin-top:30px; color:#ddd;">集點手帳</div>
+            </div>
+
+            <div class="main-area">
+                <div class="user-info">Guest: @<span id="displayUser">---</span></div>
+                
+                <ul class="record-list" id="recordList">
+                    <li><span class="desc">等待查詢中...</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="footer-area">
+            <div class="total-label">CURRENT POINTS</div>
+            <div class="total-score" id="totalPoints">0</div>
+            <div class="footer-note">具體兌換規則請至置頂噗 (回饋福利)</div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIG: 請在這裡貼上你第一步取得的 CSV 連結
+        // ==========================================
+        const SHEET_CONSUME_URL = '請貼上消費紀錄的CSV連結'; 
+        const SHEET_REDEEM_URL = '請貼上兌換紀錄的CSV連結';
+        // ==========================================
+
+        let consumeData = [];
+        let redeemData = [];
+
+        // 初始化：載入 Google Sheet 資料
+        window.onload = function() {
+            loadData(SHEET_CONSUME_URL, data => consumeData = data);
+            loadData(SHEET_REDEEM_URL, data => redeemData = data);
+        };
+
+        function loadData(url, callback) {
+            if(url.includes('請貼上')) return; // 防呆
+            Papa.parse(url, {
+                download: true,
+                header: true, // 假設第一行是標題
+                complete: function(results) {
+                    callback(results.data);
+                    console.log("Data loaded:", results.data);
+                }
+            });
+        }
+
+        function generateReceipt() {
+            const userId = document.getElementById('userIdInput').value.trim();
+            if (!userId) { alert("請輸入 ID！"); return; }
+            if (consumeData.length === 0) { alert("資料尚未載入，請稍後再試或檢查 CSV 連結。"); return; }
+
+            document.getElementById('displayUser').innerText = userId;
+            const listContainer = document.getElementById('recordList');
+            listContainer.innerHTML = '';
+
+            let totalPoints = 0;
+            let allRecords = [];
+
+            // 1. 處理消費紀錄
+            // 假設 CSV 欄位名稱分別是 (請根據你的實際 CSV 標題修改)：
+            // ID欄位名: 'ID', 日期欄位名: '日期', 金額欄位名: '金額'
+            // *如果不確定，可以在瀏覽器 Console 看到印出的 data
+            
+            // 下面用 ColumnIndex 來抓比較保險 (0=A, 1=B, 2=C...)
+            // PapaParse 若無 header:true 則回傳陣列
+            // 這裡假設有 header，需根據你的表格實際標題修改
+            // 為了方便，這裡改寫成簡單過濾邏輯
+            
+            consumeData.forEach(row => {
+                // 為了通用性，這裡假設 ID 在 'A' 欄位 (row['ID'] 或 row[0])
+                // 你可能需要根據實際 CSV 的標頭名稱修改這裡
+                let rID = row['ID'] || row[Object.keys(row)[0]]; 
+                let rDate = row['日期'] || row[Object.keys(row)[1]];
+                let rMoney = row['金額'] || row[Object.keys(row)[2]];
+
+                if (rID == userId) {
+                    let pts = Math.floor(parseInt(rMoney) / 800); // 你的公式 logic
+                    totalPoints += pts;
+                    allRecords.push({
+                        type: 'earn',
+                        date: formatDate(rDate),
+                        text: `累積消費 ${rMoney} 元`,
+                        points: pts
+                    });
+                }
+            });
+
+            // 2. 處理兌換紀錄
+            redeemData.forEach(row => {
+                let rID = row['ID'] || row[Object.keys(row)[0]];
+                let rDate = row['日期'] || row[Object.keys(row)[1]];
+                let rItem = row['項目'] || row[Object.keys(row)[2]];
+                let rCost = row['點數'] || row[Object.keys(row)[3]];
+
+                if (rID == userId) {
+                    let cost = parseInt(rCost);
+                    totalPoints -= cost;
+                    allRecords.push({
+                        type: 'use',
+                        date: formatDate(rDate),
+                        text: `兌換 ${rItem}`,
+                        points: cost
+                    });
+                }
+            });
+
+            // 3. 排序 (日期新 -> 舊)
+            allRecords.sort((a, b) => b.date.localeCompare(a.date));
+
+            // 4. 渲染到畫面上
+            if (allRecords.length === 0) {
+                listContainer.innerHTML = '<li><span class="desc">目前沒有紀錄</span></li>';
+            } else {
+                allRecords.forEach(rec => {
+                    let pointHtml = rec.type === 'earn' 
+                        ? `<span class="points-earn">+${rec.points}</span>` 
+                        : `<span class="points-use">-${rec.points}</span>`;
+                    
+                    let html = `
+                        <span class="date">${rec.date}</span>
+                        <span class="desc">${rec.text}</span>
+                        ${pointHtml}
+                    `;
+                    let li = document.createElement('li');
+                    li.innerHTML = html;
+                    listContainer.appendChild(li);
+                });
+            }
+
+            document.getElementById('totalPoints').innerText = totalPoints;
+        }
+
+        // 輔助：日期格式化 (YYMMDD)
+        function formatDate(dateStr) {
+            // 嘗試解析日期，如果格式不一可能需要調整
+            let d = new Date(dateStr);
+            if (isNaN(d.getTime())) return dateStr; // 解析失敗就回傳原字串
+            let yy = d.getFullYear().toString().substr(-2);
+            let mm = (d.getMonth() + 1).toString().padStart(2, '0');
+            let dd = d.getDate().toString().padStart(2, '0');
+            return `${yy}${mm}${dd}`;
+        }
+
+        // 下載圖片
+        function downloadImage() {
+            const node = document.getElementById('receipt-canvas');
+            html2canvas(node, { scale: 2 }).then(canvas => {
+                let link = document.createElement('a');
+                link.download = '集點卡_' + document.getElementById('displayUser').innerText + '.jpg';
+                link.href = canvas.toDataURL("image/jpeg", 0.9);
+                link.click();
+            });
+        }
+    </script>
+</body>
+</html>
