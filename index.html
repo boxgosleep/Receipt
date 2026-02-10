@@ -9,7 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+TC:wght@400;700&family=Cinzel:wght@700&family=Courier+Prime:wght@400;700&display=swap" rel="stylesheet">
     
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
 
     <style>
         /* === 全局重置 === */
@@ -24,11 +24,10 @@
             margin: 0;
             color: #333;
             min-height: 100vh;
-            /* 防止手機左右滑動 */
-            overflow-x: hidden; 
+            overflow-x: hidden;
         }
 
-        /* === ✨ UI 優化：手機友善控制面板 === */
+        /* === UI 控制面板 === */
         .controls {
             background: rgba(30, 30, 30, 0.8);
             backdrop-filter: blur(10px);
@@ -52,7 +51,7 @@
         }
 
         select { 
-            padding: 10px 15px; 
+            padding: 10px 15px;
             border: 1px solid #555;
             background: #222;
             border-radius: 10px; 
@@ -65,7 +64,7 @@
         }
 
         .btn-dl { 
-            background: #e0e0e0; 
+            background: #e0e0e0;
             color: #111; 
             border: none; 
             padding: 10px 25px; 
@@ -85,79 +84,118 @@
             select, .btn-dl { width: 100%; text-align: center; }
         }
 
-        /* === 截圖範圍 (聚光燈背景) === */
+        /* === 截圖範圍 === */
         #capture-frame {
             background: radial-gradient(circle at center, #333333 0%, #000000 80%);
-            
-            /* 🔥🔥🔥 修改點 1：強制固定寬度，不讓 CSS 響應式改變它 🔥🔥🔥 */
-            width: 700px !important;  
+            width: 700px !important;
             min-width: 700px;
-            
             min-height: 900px;
             padding: 60px 0;
             display: flex;
             justify-content: center;
             align-items: center;
             position: relative;
-            
-            /* 設定變形原點在上方，方便 JS 縮放時對齊 */
             transform-origin: top center;
             flex-shrink: 0; 
         }
         
-        /* 🔥🔥🔥 修改點 2：刪除了原本這裡的 @media zoom 設定，改用 JS 控制 🔥🔥🔥 */
-
-        /* === 舞台容器 === */
+        /* === 舞台容器 (寬度固定 450px) === */
         .stage-container {
             position: relative;
             width: 450px; 
             height: 720px; 
         }
 
-        /* === 卡片通用 === */
+        /* === 卡片通用設定 === */
         .card {
             position: absolute;
             top: 0; left: 0;
             width: 100%;
             height: 100%;
-            border-radius: 2px;
-            overflow: hidden;
         }
 
-        /* === 紙張紋理 === */
-        .paper-bg {
-            position: absolute;
-            top: 0; left: 0; width: 100%; height: 100%;
-            background-color: #e8e6e1; 
-            background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
-            background-size: 300px 300px; 
-            z-index: 1;
-        }
-
-        /* === 兩側裝飾卡片 === */
+        /* === 兩側裝飾卡片 (維持直角，背景灰色) === */
         .side-card {
-            background: #888; 
+            background: #888;
             box-shadow: 0 10px 30px rgba(0,0,0,0.8);
         }
-        .side-left {
-            transform: translateX(-15px) translateY(10px); 
-            z-index: 5;
-            filter: brightness(0.6); 
-        }
-        .side-right {
-            transform: translateX(15px) translateY(10px); 
-            z-index: 5;
-            filter: brightness(0.6); 
-        }
+        .side-left { transform: translateX(-15px) translateY(10px); z-index: 5; filter: brightness(0.6); }
+        .side-right { transform: translateX(15px) translateY(10px); z-index: 5; filter: brightness(0.6); }
 
         /* === 中央主卡片 === */
         .main-card {
             z-index: 10;
-            box-shadow: 0 30px 80px rgba(0,0,0,0.9);
             display: flex;
             flex-direction: column;
             transform: translateY(0);
+            /* 讓容器本身透明，只顯示陰影 */
+            background: transparent;
+            /* 使用 drop-shadow 讓陰影跟隨鋸齒形狀 */
+            filter: drop-shadow(0 30px 50px rgba(0,0,0,0.9));
         }
+
+/* =========================================
+   🔥🔥🔥 紙張質感核心修改區 🔥🔥🔥
+   使用混合模式 (overlay) 將底色與噪點材質結合
+========================================= */
+
+/* 1. 本體 */
+.main-card .paper-bg {
+    position: absolute;
+    top: 10px; bottom: 10px; left: 0; width: 100%; height: calc(100% - 20px); z-index: 1;
+    
+    /* 🔥 修改 1: 底色改為稍微深一點、暖一點的米色，讓材質更明顯 */
+    background-color: #d0c8bc;
+    
+    /* 使用穩定的灰階 PNG 材質 */
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N8fHzMzMxcXFwqKiohISFqampQUFBWVlaLi4mysrJOVk7///+9vb2urq5hYWGampqcnJyTk5O+vr6NjY1ycnKhoaFxcXGqqqqMjIwZ/8iOAAAAG3RSTlMAvv3omvy7Fv7mLz792r6BdPvPv5x5/b2Wlvyb/65tAAAAqUlEQVR4XqWUSw6EMAxDQ0JI+pe5/6kjsUColPzRqLw4sawCwI9x/Oc4t04I5HoTJbOc0/tV1iMxj8c+ptuTmZAUEgAAhDouTVJKBdB19ZxJ4puzErO1f6XGVO2fS2R6/0y1989F8oO/Smnm/4ZVCR8JJwL1OyaBo5eR8J18Qy4j4Ts5Rt9GwnfyDbmN/D85QvBv8g25jYTv5BvSjYTv5BvSjYTv5BvSjYQvBC85pw5sLh0F/QAAAABJRU5ErkJggg==');
+    
+    /* 🔥 修改 2: 加入混合模式 overlay，創造紙張質感 */
+    background-blend-mode: overlay;
+    
+    background-size: 100px 100px;
+    background-repeat: repeat;
+}
+
+/* 2. 頂部鋸齒 (同步套用質感) */
+.main-card .paper-bg::before {
+    content: ''; position: absolute; top: -10px; left: 0; width: 100%; height: 11px;
+    
+    /* 🔥 同步底色與混合模式 */
+    background-color: #d0c8bc;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N8fHzMzMxcXFwqKiohISFqampQUFBWVlaLi4mysrJOVk7///+9vb2urq5hYWGampqcnJyTk5O+vr6NjY1ycnKhoaFxcXGqqqqMjIwZ/8iOAAAAG3RSTlMAvv3omvy7Fv7mLz792r6BdPvPv5x5/b2Wlvyb/65tAAAAqUlEQVR4XqWUSw6EMAxDQ0JI+pe5/6kjsUColPzRqLw4sawCwI9x/Oc4t04I5HoTJbOc0/tV1iMxj8c+ptuTmZAUEgAAhDouTVJKBdB19ZxJ4puzErO1f6XGVO2fS2R6/0y1989F8oO/Smnm/4ZVCR8JJwL1OyaBo5eR8J18Qy4j4Ts5Rt9GwnfyDbmN/D85QvBv8g25jYTv5BvSjYTv5BvSjYTv5BvSjYQvBC85pw5sLh0F/QAAAABJRU5ErkJggg==');
+    background-blend-mode: overlay;
+    
+    background-size: 100px 100px;
+
+    /* 保留遮罩設定 */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cpath d='M0,220 A150,150 0 0,1 300,220 Z' fill='black'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cpath d='M0,220 A150,150 0 0,1 300,220 Z' fill='black'/%3E%3C/svg%3E");
+    -webkit-mask-size: 15px 100%; mask-size: 15px 100%;
+    -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+}
+
+/* 3. 底部鋸齒 (同步套用質感) */
+.main-card .paper-bg::after {
+    content: ''; position: absolute; bottom: -10px; left: 0; width: 100%; height: 11px;
+    
+    /* 🔥 同步底色與混合模式 */
+    background-color: #d0c8bc;
+    background-image: url('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAADIAAAAyCAMAAAAp4XiDAAAAUVBMVEWFhYWDg4N8fHzMzMxcXFwqKiohISFqampQUFBWVlaLi4mysrJOVk7///+9vb2urq5hYWGampqcnJyTk5O+vr6NjY1ycnKhoaFxcXGqqqqMjIwZ/8iOAAAAG3RSTlMAvv3omvy7Fv7mLz792r6BdPvPv5x5/b2Wlvyb/65tAAAAqUlEQVR4XqWUSw6EMAxDQ0JI+pe5/6kjsUColPzRqLw4sawCwI9x/Oc4t04I5HoTJbOc0/tV1iMxj8c+ptuTmZAUEgAAhDouTVJKBdB19ZxJ4puzErO1f6XGVO2fS2R6/0y1989F8oO/Smnm/4ZVCR8JJwL1OyaBo5eR8J18Qy4j4Ts5Rt9GwnfyDbmN/D85QvBv8g25jYTv5BvSjYTv5BvSjYTv5BvSjYQvBC85pw5sLh0F/QAAAABJRU5ErkJggg==');
+    background-blend-mode: overlay;
+
+    background-size: 100px 100px;
+
+    /* 保留遮罩設定 */
+    -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cpath d='M0,0 A150,150 0 0,0 300,0 Z' fill='black'/%3E%3C/svg%3E");
+    mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='220' viewBox='0 0 300 220'%3E%3Cpath d='M0,0 A150,150 0 0,0 300,0 Z' fill='black'/%3E%3C/svg%3E");
+    -webkit-mask-size: 15px 100%; mask-size: 15px 100%;
+    -webkit-mask-repeat: repeat-x; mask-repeat: repeat-x;
+}
+
+/* =========================================
+   🔥 修改結束 🔥
+========================================= */
 
         /* === 巨型背景字 === */
         .giant-text {
@@ -179,6 +217,7 @@
         .content-layer {
             position: relative;
             z-index: 20; 
+            /* 🔥 上下 padding 設為 40px，確保不會切到鋸齒 */
             padding: 40px 35px;
             flex: 1;
             display: flex;
@@ -240,7 +279,7 @@
         }
         
         .dots {
-            flex: 1; 
+            flex: 1;
             border-bottom: 1px dotted #999;
             margin: 0 8px;
             height: 5px; 
@@ -283,7 +322,7 @@
 
         .total-box { text-align: right; }
         .lbl {
-            padding-bottom: 9px; 
+            padding-bottom: 9px;
             font-size: 9px; 
             text-transform: uppercase; 
             letter-spacing: 1.5px; 
@@ -312,15 +351,11 @@
 
     <div id="capture-frame">
         <div class="stage-container">
-            <div class="card side-card side-left">
-                <div class="paper-bg"></div>
-            </div>
-            <div class="card side-card side-right">
-                <div class="paper-bg"></div>
-            </div>
+            <div class="card side-card side-left"></div>
+            <div class="card side-card side-right"></div>
+
             <div class="card main-card">
-                <div class="paper-bg"></div>
-                <div class="giant-text">HAKONIWA</div>
+                <div class="paper-bg"></div> <div class="giant-text">HAKONIWA</div>
                 <div class="content-layer">
                     <div class="top-header">
                         <span class="brand-name">HAKONIWA IRUME</span>
@@ -350,21 +385,16 @@
     </div>
 
     <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv'; 
-
+        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv';
         let globalData = [];
 
         window.onload = function() {
             updateCurrentDate();
-            
-            // 🔥🔥🔥 修改點 3：初始化時執行一次視覺縮放預覽，並監聽視窗變化 🔥🔥🔥
             autoScalePreview();
             window.addEventListener('resize', autoScalePreview);
-
             const msg = document.getElementById('statusMsg');
             msg.style.display = 'block';
             msg.innerText = "讀取資料中...";
-
             if(CSV_URL.includes('pubhtml')) {
                 msg.innerText = "❌ 連結錯誤";
                 return;
@@ -372,20 +402,15 @@
             fetchAndInit();
         };
 
-        // 🔥🔥🔥 修改點 4：新增自動縮放函數 (只縮放視覺，不改變實際排版) 🔥🔥🔥
         function autoScalePreview() {
             const frame = document.getElementById('capture-frame');
             const screenWidth = window.innerWidth;
-            const targetWidth = 720; // 理想的卡片容器寬度 (比 700 稍大一點)
+            const targetWidth = 720; 
 
             if (screenWidth < targetWidth) {
-                // 計算縮放比例
                 const scale = screenWidth / targetWidth;
-                // 套用縮放
                 frame.style.transform = `scale(${scale})`;
-                // 因為 scale 是縮放顯示，下方會留白，所以要把下方 margin 拉回來
-                // 計算公式大致為：原始高度 * (1 - 比例)
-                frame.style.marginBottom = `-${(1 - scale) * 900}px`; 
+                frame.style.marginBottom = `-${(1 - scale) * 900}px`;
             } else {
                 frame.style.transform = 'none';
                 frame.style.marginBottom = '0px';
@@ -442,15 +467,14 @@
 
             let idKey = Object.keys(globalData[0]).find(k => k.toUpperCase().includes('ID')) || Object.keys(globalData[0])[0];
             const userRow = globalData.find(row => row[idKey] == userId);
-
-           if (userRow) {
+            if (userRow) {
                 let pointKey = Object.keys(userRow).find(k => k.includes('點數')) || '目前點數';
                 document.getElementById('totalPoints').innerText = userRow[pointKey] || "0";
 
                 let allHistoryKeys = Object.keys(userRow).filter(k => k.includes('歷史') || k.includes('紀錄'));
                 let rawHistory = allHistoryKeys.length > 0 ? allHistoryKeys.map(key => userRow[key]).join("\n") : (userRow['消費歷史'] || "");
                 
-                const rawLines = rawHistory.split(/[\n\r]+/); 
+                const rawLines = rawHistory.split(/[\n\r]+/);
                 let records = [];
 
                rawLines.forEach(line => {
@@ -477,7 +501,7 @@
                         type = 'use';
                         let ptMatch = desc.match(/使用(\d+)點/); 
                         if (ptMatch) points = "-" + ptMatch[1];
-                        desc = desc.replace(/使用\d+點/, "").replace(/兌換/, "").trim(); 
+                        desc = desc.replace(/使用\d+點/, "").replace(/兌換/, "").trim();
                     } else {
                         type = 'earn';
                         let ptMatch = desc.match(/獲得(\d+)點/);
@@ -493,15 +517,13 @@
 
                 records.sort((a, b) => b.rawSort.localeCompare(a.rawSort));
                 
-                if (records.length > 12) records = records.slice(0, 12); 
-
+                if (records.length > 12) records = records.slice(0, 12);
                 if (records.length === 0) {
                      listContainer.innerHTML = `<div style="margin-top:50px; color:#aaa; text-align:center;">NO RECORDS</div>`;
                 } else {
                     records.forEach(rec => {
                         let div = document.createElement('div');
                         div.className = 'row';
-                        
                         let ptClass = rec.type === 'earn' ? 'p-plus' : 'p-minus';
                         if(rec.type==='none') ptClass = '';
                         let descClass = rec.type === 'use' ? 'desc desc-use' : 'desc';
@@ -519,56 +541,59 @@
             }
         }
 
-        function downloadImage() {
-            const node = document.getElementById('capture-frame');
-            const btn = document.querySelector('.btn-dl');
-            const userName = document.getElementById('displayUser').innerText;
-            if (userName === "---" || userName === "") { alert("請先選擇客人！"); return; }
-            
-            const originalText = btn.innerText;
-            btn.innerText = "製作中..."; 
-            btn.disabled = true; 
-            window.scrollTo(0,0);
-            
-            // 🔥🔥🔥 修改點 5：截圖瞬間，先把縮小效果拿掉，讓它恢復「電腦版」大小 🔥🔥🔥
-            const currentTransform = node.style.transform;
-            const currentMargin = node.style.marginBottom;
-            
-            // 暫時移除縮放
-            node.style.transform = 'none';
-            node.style.margin = '0'; 
-            
-            html2canvas(node, { 
-                scale: 2, 
-                useCORS: true, 
-                allowTaint: true, 
-                backgroundColor: null,
-                // 🔥 強制告訴 html2canvas 畫布要這麼寬，避免被手機視窗寬度影響
-                width: 700,
-                windowWidth: 700 
-            }).then(canvas => {
-                let link = document.createElement('a');
-                link.download = `箱庭集點卡_${userName}.jpg`;
-                link.href = canvas.toDataURL("image/jpeg", 0.95);
-                document.body.appendChild(link); link.click(); document.body.removeChild(link);
-                
-                btn.innerText = originalText; btn.disabled = false;
+   function downloadImage() {
+    const node = document.getElementById('capture-frame');
+    const btn = document.querySelector('.btn-dl');
+    const userName = document.getElementById('displayUser').innerText;
 
-                // 🔥 截圖完畢，把手機預覽的縮放效果加回去
-                node.style.transform = currentTransform;
-                node.style.marginBottom = currentMargin;
-                
-            }).catch(err => { 
-                console.error(err); 
-                alert("下載失敗"); 
-                btn.innerText = originalText; 
-                btn.disabled = false; 
+    if (userName === "---" || userName === "") { alert("請先選擇客人！"); return; }
 
-                // 失敗也要復原
-                node.style.transform = currentTransform;
-                node.style.marginBottom = currentMargin;
-            });
-        }
+    const originalText = btn.innerText;
+    btn.innerText = "製作中...";
+    btn.disabled = true;
+
+    const originalTransform = node.style.transform;
+    const originalMargin = node.style.marginBottom;
+
+    // 暫時移除 CSS 縮放，避免干擾
+    node.style.transform = 'none';
+    node.style.margin = '0';
+
+    htmlToImage.toJpeg(node, { 
+        quality: 0.95, 
+        backgroundColor: '#111111', 
+        
+        // 🔥 關鍵修改：設定 3 倍解析度，圖片會變大且清晰
+        pixelRatio: 3, 
+        
+        // 🔥 關鍵修改：不需要強制 scale(1)，讓 pixelRatio 去處理放大
+        style: { 
+            transform: 'none',
+            margin: '0'
+        } 
+    })
+    .then(function (dataUrl) {
+        let link = document.createElement('a');
+        link.download = `箱庭集點卡_${userName}.jpg`;
+        link.href = dataUrl;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+
+        btn.innerText = originalText;
+        btn.disabled = false;
+        node.style.transform = originalTransform;
+        node.style.marginBottom = originalMargin;
+    })
+    .catch(function (error) {
+        console.error('oops, something went wrong!', error);
+        alert("下載失敗，請檢查控制台錯誤訊息");
+        btn.innerText = originalText;
+        btn.disabled = false;
+        node.style.transform = originalTransform;
+        node.style.marginBottom = originalMargin;
+    });
+}
     </script>
 </body>
 </html>
