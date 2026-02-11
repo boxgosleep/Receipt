@@ -394,38 +394,16 @@
         return urlParams.get(param);
     }
 
-window.onload = function() {
+    window.onload = function() {
         updateCurrentDate();
         autoScalePreview();
         window.addEventListener('resize', autoScalePreview);
         const msg = document.getElementById('statusMsg');
-
-        // ★★★ 修改重點：回到原倍率，只做裁切 ★★★
+        
+        // ★ 新增 2：如果是 clean 模式，隱藏上面的控制列 (截圖用)
         if (getQueryParam('mode') === 'clean') {
-            // 1. 隱藏控制列
             document.querySelector('.controls').style.display = 'none';
-            
-            // 2. 鎖定背景與容器大小 (520px 剛好包住卡片)
-            // 我們不使用 scale 放大，保持 1:1，讓 GAS 去處理放大
-            var frame = document.getElementById('capture-frame');
-            frame.style.width = '520px';  
-            frame.style.minWidth = '520px';
-            
-            // 高度稍微設高一點，避免尾巴被切
-            frame.style.minHeight = '900px'; 
-            
-            frame.style.padding = '0';    
-            frame.style.margin = '0';
-            
-            // 確保 Flexbox 不會亂跑，強制靠左上
-            document.body.style.justifyContent = 'flex-start';
-            document.body.style.margin = '0';    // 補上這行，防止位移
-            document.body.style.padding = '0';   // 補上這行，防止位移
-            document.body.style.display = "inline-block"; // 關鍵：讓 body 隨內容縮放
-            document.body.style.alignItems = 'flex-start';
-            document.body.style.overflow = 'hidden';
         }
-        // ★★★ 修改結束 ★★★
 
         msg.style.display = 'block';
         msg.innerText = "讀取資料中...";
