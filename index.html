@@ -400,24 +400,27 @@ window.onload = function() {
         window.addEventListener('resize', autoScalePreview);
         const msg = document.getElementById('statusMsg');
 
-        // ★★★ 這裡是修改重點：針對 clean 模式進行「裁切」與「高清放大」 ★★★
+        // ★★★ 修改重點：回到原倍率，只做裁切 ★★★
         if (getQueryParam('mode') === 'clean') {
             // 1. 隱藏控制列
             document.querySelector('.controls').style.display = 'none';
             
-            // 2. 鎖定背景與容器大小，去除多餘黑邊 (把寬度鎖死在 520px)
+            // 2. 鎖定背景與容器大小 (520px 剛好包住卡片)
+            // 我們不使用 scale 放大，保持 1:1，讓 GAS 去處理放大
             var frame = document.getElementById('capture-frame');
             frame.style.width = '520px';  
             frame.style.minWidth = '520px';
-            frame.style.minHeight = '800px'; 
+            
+            // 高度稍微設高一點，避免尾巴被切
+            frame.style.minHeight = '900px'; 
+            
             frame.style.padding = '0';    
             frame.style.margin = '0';
             
-            // 3. 關鍵：使用 CSS Transform 強制放大 2 倍 (達到高清效果)
-            document.body.style.transform = "scale(2)";
-            document.body.style.transformOrigin = "top left"; // 從左上角開始放大
-            document.body.style.width = "1040px"; // 容器寬度也要 x2 (520 * 2)
-            document.body.style.overflow = "hidden"; // 隱藏捲軸
+            // 確保 Flexbox 不會亂跑，強制靠左上
+            document.body.style.justifyContent = 'flex-start';
+            document.body.style.alignItems = 'flex-start';
+            document.body.style.overflow = 'hidden';
         }
         // ★★★ 修改結束 ★★★
 
@@ -428,7 +431,7 @@ window.onload = function() {
             msg.innerText = "❌ 連結錯誤";
             return;
         }
-        fetchAndInit(); // 啟動讀取 CSV 的程式
+        fetchAndInit();
     };
 
         function autoScalePreview() {
