@@ -419,6 +419,9 @@ window.onload = function() {
             
             // 確保 Flexbox 不會亂跑，強制靠左上
             document.body.style.justifyContent = 'flex-start';
+            document.body.style.margin = '0';    // 補上這行，防止位移
+            document.body.style.padding = '0';   // 補上這行，防止位移
+            document.body.style.display = "inline-block"; // 關鍵：讓 body 隨內容縮放
             document.body.style.alignItems = 'flex-start';
             document.body.style.overflow = 'hidden';
         }
