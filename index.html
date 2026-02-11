@@ -384,61 +384,36 @@
         </div>
     </div>
 
-    <script>
-        const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv';
-        let globalData = [];
-        
-// ... (保留原本的 CSV_URL 和 globalData) ...
+<script>
+    const CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSRN8TqorraKVjJ3FGYpndM6aUQFQcor-4TzrIG_smGY42hTgteuLL_lvGNMKj1wcYPQ70WMz-iWMpA/pub?output=csv';
+    let globalData = [];
 
-// ★ 修改 1: 增加一個從網址取得參數的 helper
-function getQueryParam(param) {
-    const urlParams = new URLSearchParams(window.location.search);
-    return urlParams.get(param);
-}
-
-window.onload = function() {
-    updateCurrentDate();
-    autoScalePreview();
-    window.addEventListener('resize', autoScalePreview);
-    
-    // 隱藏控制面板 (如果是自動化截圖模式)
-    // 這樣截圖出來才不會有上面那個黑色的控制條
-    if (getQueryParam('mode') === 'clean') {
-        document.querySelector('.controls').style.display = 'none';
-        document.body.style.backgroundColor = 'transparent'; // 讓背景透明方便去背(選用)
+    // ★ 新增 1：取得網址參數的工具
+    function getQueryParam(param) {
+        const urlParams = new URLSearchParams(window.location.search);
+        return urlParams.get(param);
     }
 
-    fetchAndInit(); // 啟動資料讀取
-};
-
-function fetchAndInit() {
-    Papa.parse(CSV_URL, {
-        download: true, header: true, skipEmptyLines: true,
-        complete: function(results) {
-            if (results.data && results.data.length > 0) {
-                globalData = results.data;
-                initDropdown(); // 保持原本功能
-                
-                // ★ 修改 2: 資料讀取完後，檢查網址有沒有指定 user
-                const targetUser = getQueryParam('user');
-                if (targetUser) {
-                    // 如果有指定，直接設定選單並觸發生成
-                    const select = document.getElementById('userSelect');
-                    select.value = targetUser;
-                    generateReceipt(); // 渲染卡片
-                    
-                    // 給一個訊號告訴截圖機器人「我好了」
-                    // (這是一個隱藏的 div，截圖 API 可以偵測這個元素出現才拍照)
-                    const readyDiv = document.createElement('div');
-                    readyDiv.id = 'render-complete';
-                    document.body.appendChild(readyDiv);
-                }
-            }
+    window.onload = function() {
+        updateCurrentDate();
+        autoScalePreview();
+        window.addEventListener('resize', autoScalePreview);
+        const msg = document.getElementById('statusMsg');
+        
+        // ★ 新增 2：如果是 clean 模式，隱藏上面的控制列 (截圖用)
+        if (getQueryParam('mode') === 'clean') {
+            document.querySelector('.controls').style.display = 'none';
         }
-    });
-}
 
-// ... (其餘 generateReceipt 等函式保持不變) ...
+        msg.style.display = 'block';
+        msg.innerText = "讀取資料中...";
+        
+        if(CSV_URL.includes('pubhtml')) {
+            msg.innerText = "❌ 連結錯誤";
+            return;
+        }
+        fetchAndInit();
+    };
 
         function autoScalePreview() {
             const frame = document.getElementById('capture-frame');
@@ -462,19 +437,50 @@ function fetchAndInit() {
             document.getElementById('autoDate').innerText = `${year}-${month}`;
         }
 
-        function fetchAndInit() {
-            Papa.parse(CSV_URL, {
-                download: true, header: true, skipEmptyLines: true,
-                complete: function(results) {
-                    if (results.data && results.data.length > 0) {
-                        globalData = results.data;
-                        initDropdown();
-                        document.getElementById('statusMsg').innerText = "✅ 資料就緒";
-                        setTimeout(() => { document.getElementById('statusMsg').style.display = 'none'; }, 2000);
+function fetchAndInit() {
+        Papa.parse(CSV_URL, {
+            download: true, header: true, skipEmptyLines: true,
+            complete: function(results) {
+                if (results.data && results.data.length > 0) {
+                    globalData = results.data;
+                    initDropdown();
+                    
+                    document.getElementById('statusMsg').innerText = "✅ 資料就緒";
+                    setTimeout(() => { document.getElementById('statusMsg').style.display = 'none'; }, 2000);
+
+                    // ============================================
+                    // ★ 關鍵修正：資料讀取完畢後，檢查網址並自動執行
+                    // ============================================
+                    const targetUser = getQueryParam('user');
+                    if (targetUser) {
+                        // 1. 找到選單 DOM
+                        const select = document.getElementById('userSelect');
+                        
+                        // 2. 檢查 CSV 裡有沒有這個人 (選單裡有沒有這個選項)
+                        // 這一步很重要，不然塞一個不存在的 ID 會報錯
+                        let exists = false;
+                        for (let i = 0; i < select.options.length; i++) {
+                            if (select.options[i].value === targetUser) {
+                                exists = true;
+                                break;
+                            }
+                        }
+
+                        if (exists) {
+                            // 3. 設定選單值
+                            select.value = targetUser;
+                            // 4. ★ 強制觸發畫面更新函式
+                            generateReceipt();
+                        } else {
+                            console.warn("找不到使用者 ID:", targetUser);
+                            document.getElementById('recordList').innerHTML = '<div style="margin-top:50px; color:red;">USER NOT FOUND</div>';
+                        }
                     }
+                    // ============================================
                 }
-            });
-        }
+            }
+        });
+    }
 
         function initDropdown() {
             const select = document.getElementById('userSelect');
