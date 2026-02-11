@@ -394,16 +394,32 @@
         return urlParams.get(param);
     }
 
-    window.onload = function() {
+window.onload = function() {
         updateCurrentDate();
         autoScalePreview();
         window.addEventListener('resize', autoScalePreview);
         const msg = document.getElementById('statusMsg');
-        
-        // ★ 新增 2：如果是 clean 模式，隱藏上面的控制列 (截圖用)
+
+        // ★★★ 這裡是修改重點：針對 clean 模式進行「裁切」與「高清放大」 ★★★
         if (getQueryParam('mode') === 'clean') {
+            // 1. 隱藏控制列
             document.querySelector('.controls').style.display = 'none';
+            
+            // 2. 鎖定背景與容器大小，去除多餘黑邊 (把寬度鎖死在 520px)
+            var frame = document.getElementById('capture-frame');
+            frame.style.width = '520px';  
+            frame.style.minWidth = '520px';
+            frame.style.minHeight = '800px'; 
+            frame.style.padding = '0';    
+            frame.style.margin = '0';
+            
+            // 3. 關鍵：使用 CSS Transform 強制放大 2 倍 (達到高清效果)
+            document.body.style.transform = "scale(2)";
+            document.body.style.transformOrigin = "top left"; // 從左上角開始放大
+            document.body.style.width = "1040px"; // 容器寬度也要 x2 (520 * 2)
+            document.body.style.overflow = "hidden"; // 隱藏捲軸
         }
+        // ★★★ 修改結束 ★★★
 
         msg.style.display = 'block';
         msg.innerText = "讀取資料中...";
@@ -412,7 +428,7 @@
             msg.innerText = "❌ 連結錯誤";
             return;
         }
-        fetchAndInit();
+        fetchAndInit(); // 啟動讀取 CSV 的程式
     };
 
         function autoScalePreview() {
